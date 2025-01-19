@@ -1,0 +1,15 @@
+{
+  "name": "@tipc/electron",
+  "version": "0.0.1",
+  "description": "The tIPC electron library",
+  "license": "MIT",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "typings": "dist/index.d.ts",
+  "files": [],
+  "devDependencies": {
+    "@trpc/client": "11.0.0-rc.700",
+    "@trpc/server": "11.0.0-rc.700",
+    "electron": "^30.0.1"
+  }
+}
