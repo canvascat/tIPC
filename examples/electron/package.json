@@ -8,7 +8,8 @@
     "dev": "vite",
     "build": "tsc && vite build && electron-builder",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:service": "bun ./src/service.ts"
   },
   "dependencies": {
     "@trpc/client": "11.0.0-rc.700",

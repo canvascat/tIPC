@@ -21,6 +21,7 @@ const publicProcedure = t.procedure
 const router = t.router
 
 const greetingRouter = router({
+  /** greeting hello */
   hello: publicProcedure
     .input(
       z.object({
@@ -61,6 +62,7 @@ const postRouter = router({
 
 // Merge routers together
 const appRouter = router({
+  /** test greeting */
   greeting: greetingRouter,
   post: postRouter,
 })
