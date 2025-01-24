@@ -5,10 +5,11 @@ import type {
 } from '@trpc/server/rpc'
 import type {
   AnyClientTypes,
+  EventSourceLike,
   inferClientTypes,
   InferrableClientTypes,
 } from '@trpc/server/unstable-core-do-not-import'
-import type { IpcRenderer } from 'electron'
+import type { IpcRenderer, IpcRendererEvent } from 'electron'
 import { TRPCClientError } from '@trpc/client'
 import { getTransformer, type TransformerOptions, type TRPCConnectionState } from '@trpc/client/unstable-internals'
 import { behaviorSubject, observable } from '@trpc/server/observable'
@@ -32,6 +33,11 @@ type SubscriptionLinkOptions<
   ipcRenderer?: Pick<IpcRenderer, 'on' | 'off'>
 } & TransformerOptions<TRoot>
 
+interface MessageEvent {
+  id?: string
+  data: unknown
+}
+
 export function subscriptionLink<
   TInferrable extends InferrableClientTypes,
 >(
@@ -48,38 +54,37 @@ export function subscriptionLink<
 
         /* istanbul ignore if -- @preserve */
         if (type !== 'subscription') {
-          throw new Error('httpSubscriptionLink only supports subscriptions')
+          throw new Error('subscriptionLink only supports subscriptions')
         }
 
         const ac = new AbortController()
         const signal = raceAbortSignals(op.signal, ac.signal)
         const ipcRenderer: IpcRenderer = opts.ipcRenderer ?? (globalThis as any).ipcRenderer
         const subscriptionStream = subscriptionStreamConsumer<{
-          data: Partial<{
-            id?: string
-            data: unknown
-          }>
-          error: TRPCErrorShape
-          context: never
+          data: Partial<MessageEvent>
+          error?: TRPCErrorShape
+          context: { event: IpcRendererEvent }
         }>({
           signal,
           deserialize: transformer.output.deserialize,
           ipcRenderer,
-        })
-
-        const connectionState = behaviorSubject<
-          TRPCConnectionState<TRPCClientError<any>>
-        >({
-          type: 'state',
-          state: 'connecting',
-          error: null,
-        })
-
-        const connectionSub = connectionState.subscribe({
-          next(state) {
-            observer.next({
-              result: state,
-            })
+          subscribe: (listener) => {
+            const onMessage = (_event: IpcRendererEvent, _msg: any) => {
+              const msg = _msg as EventSourceLike.MessageEvent
+              const chunk = (JSON.parse(msg.data))
+              const def: MessageEvent = {
+                data: chunk,
+              }
+              if (msg.lastEventId) {
+                def.id = msg.lastEventId
+              }
+              listener({
+                data: def,
+                context: { event: _event },
+              })
+            }
+            ipcRenderer.on('message', onMessage)
+            return () => ipcRenderer.off('message', onMessage)
           },
         })
         run(async () => {
@@ -101,9 +106,7 @@ export function subscriptionLink<
 
             observer.next({
               result,
-              context: {
-                event: chunk.event,
-              },
+              context: chunk.context,
             })
           }
 
@@ -120,7 +123,6 @@ export function subscriptionLink<
         return () => {
           observer.complete()
           ac.abort()
-          connectionSub.unsubscribe()
         }
       })
     }

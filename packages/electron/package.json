@@ -7,6 +7,10 @@
   "module": "dist/index.mjs",
   "typings": "dist/index.d.ts",
   "files": [],
+  "scripts": {
+    "debug:inspect": "bun  --inspect ./src/example-client.ts",
+    "debug": "bun  ./src/example-client.ts"
+  },
   "devDependencies": {
     "@trpc/client": "11.0.0-rc.700",
     "@trpc/server": "11.0.0-rc.700",

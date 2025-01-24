@@ -11,24 +11,22 @@ interface ConsumerConfig<Context extends Record<string, unknown> = never> {
 
 interface ConsumerStreamResult<TConfig extends ConsumerConfig> {
   data: inferTrackedOutput<TConfig['data']>
-  event: IpcRendererEvent
+  context: inferTrackedOutput<TConfig['context']>
 }
-export interface SubscriptionStreamConsumerOptions {
+export interface SubscriptionStreamConsumerOptions<TConfig extends ConsumerConfig> {
   signal: AbortSignal
   deserialize?: Deserialize
   ipcRenderer: Pick<IpcRenderer, 'on' | 'off'>
-  subscribe?: () => () => void
+  subscribe?: (listener: (result: ConsumerStreamResult<TConfig>) => void) => () => void
 }
 
-interface SSEvent {
+interface MessageEvent {
   id?: string
   data: unknown
-  comment?: string
-  event?: string
 }
 
 export function subscriptionStreamConsumer<TConfig extends ConsumerConfig>(
-  opts: SubscriptionStreamConsumerOptions,
+  opts: SubscriptionStreamConsumerOptions<TConfig>,
 ): AsyncIterable<ConsumerStreamResult<TConfig>> {
   const { deserialize = v => v } = opts
 
@@ -39,13 +37,13 @@ export function subscriptionStreamConsumer<TConfig extends ConsumerConfig>(
   const createStream = () =>
     new ReadableStream<ConsumerStreamResult<TConfig>>({
       async start(controller) {
-        const ipcRenderer = opts.ipcRenderer as SubscriptionStreamConsumerOptions['ipcRenderer']
-        const handleMessage = (event: IpcRendererEvent, _msg: any) => {
+        const ipcRenderer = opts.ipcRenderer
+        const handleMessage = (_event: IpcRendererEvent, _msg: any) => {
           const msg = _msg as EventSourceLike.MessageEvent
 
           const chunk = deserialize(JSON.parse(msg.data))
 
-          const def: SSEvent = {
+          const def: MessageEvent = {
             data: chunk,
           }
           if (msg.lastEventId) {
@@ -53,7 +51,7 @@ export function subscriptionStreamConsumer<TConfig extends ConsumerConfig>(
           }
           controller.enqueue({
             data: def as inferTrackedOutput<TConfig['data']>,
-            event,
+            context: {} as inferTrackedOutput<TConfig['context']>,
           })
         }
 

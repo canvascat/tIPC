@@ -1,12 +1,12 @@
-import type { TRPCLink } from '@trpc/client'
+import type { Operation, TRPCLink } from '@trpc/client'
 import type { TransformerOptions } from '@trpc/client/unstable-internals'
 import type { AnyClientTypes, AnyRouter, CombinedDataTransformer } from '@trpc/server/unstable-core-do-not-import'
 import type { IpcRenderer } from 'electron'
-import { TRPCClientError } from '@trpc/client'
+import { httpLink, TRPCClientError } from '@trpc/client'
 import { getTransformer } from '@trpc/client/unstable-internals'
 import { observable } from '@trpc/server/observable'
 import { transformResult } from '@trpc/server/unstable-core-do-not-import'
-
+// httpLink
 function arrayToDict(array: unknown[]) {
   const dict: Record<number, unknown> = {}
   for (let index = 0; index < array.length; index++) {
@@ -32,6 +32,8 @@ export type InvokeLinkOptions<TRoot extends AnyClientTypes> = {
   ipcRenderer?: Pick<IpcRenderer, 'invoke'>
 } & TransformerOptions<TRoot>
 
+interface MessageType<Input = unknown> extends Pick<Operation<Input>, 'id' | 'path' | 'input' | 'type'> {}
+
 export function invokeLink<TRouter extends AnyRouter = AnyRouter>(
   opts: InvokeLinkOptions<TRouter['_def']['_config']['$types']>,
 ): TRPCLink<TRouter> {
@@ -39,7 +41,7 @@ export function invokeLink<TRouter extends AnyRouter = AnyRouter>(
   return () => {
     return ({ op }) => {
       return observable((observer) => {
-        const { input, type } = op
+        const { input, type, path, id } = op
         /* istanbul ignore if -- @preserve */
         if (type === 'subscription') {
           throw new Error(
@@ -48,7 +50,8 @@ export function invokeLink<TRouter extends AnyRouter = AnyRouter>(
         }
         const ipcRenderer: IpcRenderer = opts.ipcRenderer ?? (globalThis as any).ipcRenderer
         let meta: any | undefined
-        ipcRenderer.invoke('message', getInput({ input, transformer }))
+        const message = { input: getInput({ input, transformer }), type, path, id }
+        ipcRenderer.invoke('message', message)
           .then((res) => {
             meta = res.meta
             const transformed = transformResult(
