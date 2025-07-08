@@ -1,0 +1,55 @@
+{
+  "name": "@tipc/electron",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./main": {
+      "import": "./dist/main.mjs",
+      "require": "./dist/main.js",
+      "types": "./dist/main.d.ts"
+    },
+    "./preload": {
+      "import": "./dist/preload.mjs",
+      "require": "./dist/preload.js",
+      "types": "./dist/preload.d.ts"
+    },
+    "./renderer": {
+      "import": "./dist/renderer.mjs",
+      "require": "./dist/renderer.js",
+      "types": "./dist/renderer.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsdown --watch"
+  },
+  "keywords": [
+    "typescript",
+    "electron",
+    "ipc"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^37.2.0",
+    "rxjs": "^7.8.2",
+    "tsdown": "^0.12.8",
+    "typescript": "^5.0.0"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "peerDependencies": {
+    "electron": "^37.2.0",
+    "rxjs": "^7.8.2"
+  }
+}
