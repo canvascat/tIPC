@@ -25,19 +25,12 @@ export type ProcedureRecord = {
 };
 
 export interface TIPCEventMap {
-  /** r -> m */
-  message: any[];
-  /** r -> m */
-  send: [path: string[], args: any[]];
-  /** r -> m */
-  invoke: [path: string[], args: any[]];
-
-  /** r -> m */
+  message: unknown[];
+  send: [path: string[], args: unknown[]];
+  invoke: [path: string[], args: unknown[]];
   subscribe: [path: string[], subscribeId: string];
-  /** r -> m */
   unsubscribe: [subscribeId: string];
-  /** m -> r */
-  subscription: [subscribeId: string, data: any];
+  subscription: [subscribeId: string, data: unknown];
 }
 
 export interface TIPCMessage<

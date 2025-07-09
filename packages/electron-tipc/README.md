@@ -28,7 +28,6 @@ yarn add @tipc/electron
 ```typescript
 // main.ts
 import { createTIPCServer, procedure } from '@tipc/electron/main'
-import { ipcMain } from 'electron'
 import { BehaviorSubject } from 'rxjs'
 
 // 定义数据状态
@@ -83,7 +82,7 @@ const appRouter = {
 }
 
 // 创建服务器
-const dispose = createTIPCServer(appRouter, ipcMain)
+const dispose = createTIPCServer(appRouter)
 
 // 应用关闭时清理
 app.on('before-quit', () => {

@@ -1,7 +1,7 @@
 {
   "name": "@tipc/electron",
   "version": "0.0.1",
-  "description": "",
+  "description": "A simple and powerful IPC library for Electron",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
@@ -24,12 +24,14 @@
   },
   "scripts": {
     "build": "tsdown",
-    "dev": "tsdown --watch"
+    "dev": "tsdown --watch",
+    "prepublishOnly": "pnpm build"
   },
   "keywords": [
     "typescript",
     "electron",
-    "ipc"
+    "ipc",
+    "trpc"
   ],
   "author": "",
   "license": "MIT",

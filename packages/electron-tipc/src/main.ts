@@ -1,4 +1,4 @@
-import { webContents, type IpcMain } from "electron";
+import { webContents, ipcMain, app } from "electron";
 import { channel } from "./const";
 import type { ProcedureAny, ProcedureRecord, AllTIPCInvoke, AllTIPCMessageWithEvent, TIPCMessage } from "./type";
 import { filter, fromEvent, map, Subscription } from "rxjs";
@@ -11,12 +11,19 @@ function findProcedure(record: ProcedureRecord | ProcedureAny, path: string[]) {
   if (record && typeof record === 'function' && pathCopy.length === 0) return record
   throw new Error(`Procedure ${path.join('.')} not found`)
 }
-
-export const createTIPCServer = (record: ProcedureRecord, ipcMain: IpcMain) => {
-  function handleInvoke(_event: Electron.IpcMainInvokeEvent, path: string[], args: any[]) {
-    const procedureFn = findProcedure(record, path)
-    if (procedureFn.type !== 'invoke') throw new Error(`Procedure invoke ${path} not found`)
-    return procedureFn(...args)
+ 
+export const createTIPCServer = (record: ProcedureRecord) => {
+  async function handleInvoke(_event: Electron.IpcMainInvokeEvent, path: string[], args: any[]) {
+    try {
+      const procedureFn = findProcedure(record, path)
+      if (procedureFn.type !== 'invoke') {
+        throw new Error(`Procedure "${path.join('.')}" is not invokable`)
+      }
+      return await procedureFn(...args)
+    } catch (error) {
+      console.error(`TIPC invoke error [${path.join('.')}]:`, error)
+      throw error
+    }
   }
 
   /** subscribeId -> { subscribe: Subscription, senderId: number } */
@@ -68,9 +75,22 @@ export const createTIPCServer = (record: ProcedureRecord, ipcMain: IpcMain) => {
     }
   })
 
+  function handleRendererClosed(_event: Electron.Event, webContents: Electron.WebContents) {
+    const senderId = webContents.id
+ 
+    for (const [subscribeId, subscription] of subscriptions) {
+      if (subscription.senderId !== senderId) continue
+      subscription.subscribe.unsubscribe()
+      subscriptions.delete(subscribeId)
+    }
+  }
+
+  app.on('render-process-gone', handleRendererClosed)
+
   return () => {
     ipcMain.removeHandler(channel.invoke)
     messageSubscription.unsubscribe()
+    app.off('render-process-gone', handleRendererClosed)
   }
 }
 
