@@ -1,4 +1,4 @@
-# @tipc/electron
+# tipc-electron
 
 一个类型安全的 Electron IPC 通信库，提供类似 tRPC 的 API 设计。
 
@@ -14,11 +14,11 @@
 ## 安装
 
 ```bash
-npm install @tipc/electron
+npm install tipc-electron
 # 或
-pnpm add @tipc/electron
+pnpm add tipc-electron
 # 或
-yarn add @tipc/electron
+yarn add tipc-electron
 ```
 
 ## 基本用法
@@ -27,7 +27,7 @@ yarn add @tipc/electron
 
 ```typescript
 // main.ts
-import { createTIPCServer, procedure } from '@tipc/electron/main'
+import { createTIPCServer, procedure } from 'tipc-electron/main'
 import { BehaviorSubject } from 'rxjs'
 
 // 定义数据状态
@@ -96,7 +96,7 @@ export type AppRouter = typeof appRouter
 
 ```typescript
 // renderer.ts
-import { createTIPCClient } from '@tipc/electron/renderer'
+import { createTIPCClient } from 'tipc-electron/renderer'
 import { ipcRenderer } from 'electron'
 import type { AppRouter } from './main'
 
@@ -285,7 +285,7 @@ const mousePosition = procedure.subscription(() => {
 
 ## 与 tRPC 的区别
 
-| 特性 | @tipc/electron | tRPC |
+| 特性 | tipc-electron | tRPC |
 |------|----------------|------|
 | 运行环境 | Electron IPC | HTTP/WebSocket |
 | 传输协议 | Electron IPC 通道 | HTTP/WebSocket |

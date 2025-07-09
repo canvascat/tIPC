@@ -42,7 +42,7 @@
     "tailwindcss": "^4.1.7"
   },
   "devDependencies": {
-    "@tipc/electron": "workspace:*",
+    "tipc-electron": "workspace:*",
     "@types/node": "^22.15.21",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",

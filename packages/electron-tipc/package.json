@@ -1,7 +1,7 @@
 {
-  "name": "@tipc/electron",
+  "name": "tipc-electron",
   "version": "0.0.1",
-  "description": "A simple and powerful IPC library for Electron",
+  "description": "A simple and typesafe IPC library for Electron",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
@@ -33,7 +33,17 @@
     "ipc",
     "trpc"
   ],
-  "author": "",
+  "author": {
+    "name": "canvascat",
+    "email": "canvascat@qq.com",
+    "url": "https://github.com/canvascat"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/canvascat/tIPC"
+  },
+  "homepage": "https://github.com/canvascat/tIPC/tree/main/packages/electron-tipc",
+  "bugs": "https://github.com/canvascat/tIPC/issues",
   "license": "MIT",
   "devDependencies": {
     "electron": "^37.2.0",
