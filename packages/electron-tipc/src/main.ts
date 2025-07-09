@@ -1,49 +1,76 @@
-import { type IpcMain } from "electron";
+import { webContents, type IpcMain } from "electron";
 import { channel } from "./const";
-import { SubscriptionManager } from "./subscription";
-import type { ProcedureAny, ProcedureRecord, TIPCMessage } from "./type";
+import type { ProcedureAny, ProcedureRecord, AllTIPCInvoke, AllTIPCMessageWithEvent, TIPCMessage } from "./type";
+import { filter, fromEvent, map, Subscription } from "rxjs";
 
-
-function flattenProcedureRecord(record: ProcedureRecord) {
-  function flatten(record: ProcedureRecord | ProcedureAny, prefix: string): Record<string, ProcedureAny & { path: string }> {
-    if (typeof record === 'function') return { [prefix]: Object.assign(record, { path: prefix }) }
-    const entries = Object.entries(record).map(([key, value]) => flatten(value, prefix ? `${prefix}.${key}` : key))
-    return Object.assign({}, ...entries)
+function findProcedure(record: ProcedureRecord | ProcedureAny, path: string[]) {
+  const pathCopy = [...path]
+  while (record && pathCopy.length && typeof record !== 'function') {
+    record = record[pathCopy.shift()!]!
   }
-  return flatten(record, '')
+  if (record && typeof record === 'function' && pathCopy.length === 0) return record
+  throw new Error(`Procedure ${path.join('.')} not found`)
 }
 
 export const createTIPCServer = (record: ProcedureRecord, ipcMain: IpcMain) => {
-  const flattened = flattenProcedureRecord(record)
-
-  function handleInvoke(_event: Electron.IpcMainInvokeEvent, message: TIPCMessage) {
-    const { type, path, args } = message
-    const procedureFn = flattened[path]
-    if (!procedureFn) throw new Error(`Procedure ${type} ${path} not found`)
+  function handleInvoke(_event: Electron.IpcMainInvokeEvent, path: string[], args: any[]) {
+    const procedureFn = findProcedure(record, path)
+    if (procedureFn.type !== 'invoke') throw new Error(`Procedure invoke ${path} not found`)
     return procedureFn(...args)
   }
-  function handleSend(_event: Electron.IpcMainEvent, message: TIPCMessage) {
-    const { type, path, args } = message
-    const procedureFn = flattened[path]
-    if (!procedureFn) throw new Error(`Procedure ${type} ${path} not found`)
-    procedureFn(...args)
+
+  /** subscribeId -> { subscribe: Subscription, senderId: number } */
+  const subscriptions = new Map<string, { subscribe: Subscription, senderId: number }>()
+
+  function handleSubscribe({ path, subscribeId, senderId }: { path: string[], subscribeId: string, senderId: number }) {
+    const procedureFn = findProcedure(record, path)
+    if (procedureFn.type !== 'subscribe') throw new Error(`Procedure subscription ${path} not found`)
+    const observable = procedureFn()
+    const subscribe = observable.subscribe(data => {
+      const target = webContents.fromId(senderId)
+      if (target) {
+        target.send(channel.message, { payload: 'subscription', args: [subscribeId, data] } satisfies TIPCMessage<'subscription'>)
+      } else {
+        unsubscribe(subscribeId)
+      }
+    })
+    subscriptions.set(subscribeId, { subscribe, senderId })
+    return subscribeId;
   }
 
-  const subscriptionManager = new SubscriptionManager(Object.fromEntries(Object.values(flattened).filter(item => item.type === 'subscription').map(item => [item.path, item])))
+  function unsubscribe(subscribeId: string) {
+    const subscription = subscriptions.get(subscribeId)
+    if (subscription) {
+      subscription.subscribe.unsubscribe()
+      subscriptions.delete(subscribeId)
+    }
+  }
 
-  ipcMain.handle(channel.invoke, handleInvoke)
-  ipcMain.on(channel.send, handleSend)
-  ipcMain.on(channel.subscription, subscriptionManager.onSubscription.bind(subscriptionManager))
-  ipcMain.on(channel.unsubscribe, subscriptionManager.onUnsubscribe.bind(subscriptionManager))
+  const messageObservable = fromEvent<AllTIPCMessageWithEvent>(ipcMain, channel.message, (event, payload, ...args: any) => ({ event, payload, args }))
+  const messageSubscription = messageObservable.pipe(filter(msg => msg.payload === 'unsubscribe'), map(msg => msg.args[0])).subscribe(unsubscribe)
+  messageSubscription.add(messageObservable.pipe(filter(msg => msg.payload === 'send'), map(msg => msg.args)).subscribe(([path, args]) => {
+    const procedureFn = findProcedure(record, path)
+    if (procedureFn.type !== 'emit') throw new Error(`Procedure send ${path} not found`)
+    procedureFn(...args)
+  }))
+  messageSubscription.add(messageObservable.pipe(filter(msg => msg.payload === 'subscribe'), map(msg => {
+    const [path, subscribeId] = msg.args
+    const senderId = msg.event.sender.id
+    return { path, subscribeId, senderId }
+  })).subscribe(handleSubscribe))
 
-  // fromEvent(ipcMain, channel.send, (event: Electron.IpcMainEvent, ...args) => ({ event, args}))
-  // fromEvent(ipcMain, channel.subscription, (event: Electron.IpcMainEvent, ...args) => ({ event, args}))
-  // fromEvent(ipcMain, channel.unsubscribe, (event: Electron.IpcMainEvent, ...args) => ({ event, args}))
+  ipcMain.handle(channel.invoke, (event, message: AllTIPCInvoke) => {
+    switch (message.payload) {
+      case 'invoke':
+        return handleInvoke(event, ...message.args)
+      default:
+        throw new Error(`Unknown payload ${message}`)
+    }
+  })
+
   return () => {
     ipcMain.removeHandler(channel.invoke)
-    ipcMain.off(channel.send, handleSend)
-    ipcMain.off(channel.subscription, subscriptionManager.onSubscription.bind(subscriptionManager))
-    ipcMain.off(channel.unsubscribe, subscriptionManager.onUnsubscribe.bind(subscriptionManager))
+    messageSubscription.unsubscribe()
   }
 }
 

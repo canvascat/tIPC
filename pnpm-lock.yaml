@@ -36,6 +36,9 @@ importers:
         specifier: ^4.1.7
         version: 4.1.11
     devDependencies:
+      '@tipc/electron':
+        specifier: workspace:*
+        version: link:packages/electron-tipc
       '@types/node':
         specifier: ^22.15.21
         version: 22.16.0

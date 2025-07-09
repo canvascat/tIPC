@@ -26,7 +26,10 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build && electron-builder",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix",
+    "lint:check": "oxlint --quiet"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.7",
@@ -39,6 +42,7 @@
     "tailwindcss": "^4.1.7"
   },
   "devDependencies": {
+    "@tipc/electron": "workspace:*",
     "@types/node": "^22.15.21",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
