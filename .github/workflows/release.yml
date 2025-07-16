@@ -1,0 +1,75 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+
+jobs:
+  version-check:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.check.outputs.changed }}
+      version: ${{ steps.check.outputs.version }}
+      package: ${{ steps.check.outputs.package }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      
+      - name: Check version changes
+        id: check
+        run: |
+          git diff HEAD^ HEAD -G"version" -- "packages/*/package.json" > version_diff.txt
+          if [ -s version_diff.txt ]; then
+            echo "Version change detected"
+            PACKAGE=$(grep -l "version" packages/*/package.json | head -n1 | cut -d'/' -f2)
+            VERSION=$(node -p "require('./packages/$PACKAGE/package.json').version")
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "package=$PACKAGE" >> $GITHUB_OUTPUT
+          else
+            echo "No version change"
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create tag
+        if: steps.check.outputs.changed == 'true'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git tag -a "v${{ steps.check.outputs.version }}" -m "Release ${{ steps.check.outputs.package }}@${{ steps.check.outputs.version }}"
+          git push origin "v${{ steps.check.outputs.version }}"
+
+  publish:
+    if: github.event_name == 'create' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18.x'
+          registry-url: 'https://registry.npmjs.org'
+
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build packages
+        run: |
+          cd packages/electron-tipc
+          pnpm build
+
+      - name: Publish to NPM
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          cd packages/electron-tipc
+          pnpm publish --no-git-checks --access public 

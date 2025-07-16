@@ -1,7 +1,7 @@
 {
   "name": "tipc-electron",
-  "version": "0.0.1",
-  "description": "A simple and typesafe IPC library for Electron",
+  "version": "0.0.2",
+  "description": "A typesafe IPC library for Electron",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",

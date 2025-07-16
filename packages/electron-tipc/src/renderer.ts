@@ -4,7 +4,7 @@ import { channel } from './const'
 import { createFlatProxy, createRecursiveProxy } from './create-proxy'
 import type { AllTIPCInvoke, AllTIPCMessage, ProcedureType, TIPCFunctions, TIPCMessage } from './type'
 
-export function createTIPCClient<RemoteFunctions>(ipcRenderer: IpcRenderer) {
+export function createTIPCClient<RemoteFunctions>(ipcRenderer: Pick<IpcRenderer, 'addListener' | 'removeListener' | 'send' | 'invoke'>) {
   const observable = fromEvent<TIPCMessage<'subscription'>>(ipcRenderer, channel.message, (_event, message) => message)
     .pipe(filter(msg => msg.payload === 'subscription'), map(({ args: [subscribeId, data] }) => ({ subscribeId, data })))
 
