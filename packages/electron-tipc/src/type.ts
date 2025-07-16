@@ -1,17 +1,7 @@
-export type PromisifyFn<T extends AnyFunction> =
-  ReturnType<T> extends Promise<any>
-    ? T
-    : (...args: Parameters<T>) => Promise<Awaited<ReturnType<T>>>;
-
-export type RPCFn<
-  T extends AnyFunction,
-  M extends "invoke" | "send"
-> = M extends "invoke" ? PromisifyFn<T> : (...args: Parameters<T>) => void;
+import type { Observable } from "rxjs";
+import type * as procedure from "./procedure";
 
 export type AnyFunction = (...args: any[]) => any;
-
-import { Observable } from "rxjs";
-import type * as procedure from "./procedure";
 
 export type Procedure = typeof procedure;
 
