@@ -1,65 +1,65 @@
 {
-  "name": "tipc-electron",
-  "version": "0.0.2",
-  "description": "A typesafe IPC library for Electron",
-  "main": "dist/index.js",
-  "module": "dist/index.mjs",
-  "types": "dist/index.d.ts",
-  "exports": {
-    ".": {
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.js",
-      "types": "./dist/index.d.ts"
-    },
-    "./main": {
-      "import": "./dist/main.mjs",
-      "require": "./dist/main.js",
-      "types": "./dist/main.d.ts"
-    },
-    "./renderer": {
-      "import": "./dist/renderer.mjs",
-      "require": "./dist/renderer.js",
-      "types": "./dist/renderer.d.ts"
-    }
-  },
-  "scripts": {
-    "build": "tsdown",
-    "dev": "tsdown --watch",
-    "prepublishOnly": "pnpm build"
-  },
-  "keywords": [
-    "typescript",
-    "electron",
-    "ipc",
-    "trpc"
-  ],
-  "author": {
-    "name": "canvascat",
-    "email": "canvascat@qq.com",
-    "url": "https://github.com/canvascat"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/canvascat/tIPC"
-  },
-  "homepage": "https://github.com/canvascat/tIPC/tree/main/packages/electron-tipc",
-  "bugs": "https://github.com/canvascat/tIPC/issues",
-  "license": "MIT",
-  "devDependencies": {
-    "electron": "^37.2.0",
-    "rxjs": "^7.8.2",
-    "tsdown": "^0.12.8",
-    "typescript": "^5.0.0"
-  },
-  "files": [
-    "dist",
-    "src"
-  ],
-  "peerDependencies": {
-    "electron": "^37.2.0",
-    "rxjs": "^7.8.2"
-  },
-  "publishConfig": {
-    "access": "public"
-  }
+	"name": "tipc-electron",
+	"version": "0.0.2",
+	"description": "A typesafe IPC library for Electron",
+	"main": "dist/index.js",
+	"module": "dist/index.mjs",
+	"types": "dist/index.d.ts",
+	"exports": {
+		".": {
+			"import": "./dist/index.mjs",
+			"require": "./dist/index.js",
+			"types": "./dist/index.d.ts"
+		},
+		"./main": {
+			"import": "./dist/main/index.mjs",
+			"require": "./dist/main/index.js",
+			"types": "./dist/main/index.d.ts"
+		},
+		"./renderer": {
+			"import": "./dist/renderer.mjs",
+			"require": "./dist/renderer.js",
+			"types": "./dist/renderer.d.ts"
+		}
+	},
+	"scripts": {
+		"build": "tsdown",
+		"dev": "tsdown --watch",
+		"prepublishOnly": "pnpm build"
+	},
+	"keywords": [
+		"typescript",
+		"electron",
+		"ipc",
+		"trpc"
+	],
+	"author": {
+		"name": "canvascat",
+		"email": "canvascat@qq.com",
+		"url": "https://github.com/canvascat"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/canvascat/tIPC"
+	},
+	"homepage": "https://github.com/canvascat/tIPC/tree/main/packages/electron-tipc",
+	"bugs": "https://github.com/canvascat/tIPC/issues",
+	"license": "MIT",
+	"devDependencies": {
+		"electron": "^37.2.0",
+		"rxjs": "^7.8.2",
+		"tsdown": "^0.12.8",
+		"typescript": "^5.0.0"
+	},
+	"files": [
+		"dist",
+		"src"
+	],
+	"peerDependencies": {
+		"electron": "^37.2.0",
+		"rxjs": "^7.8.2"
+	},
+	"publishConfig": {
+		"access": "public"
+	}
 }

@@ -1,26 +1,21 @@
 {
-  "compilerOptions": {
-    "target": "es2020",
-    "lib": [
-      "esnext"
-    ],
-    "module": "Preserve",
-    "allowImportingTsExtensions": true,
-    "strict": true,
-    "noFallthroughCasesInSwitch": true,
-    "noImplicitOverride": true,
-    "noImplicitReturns": true,
-    "noPropertyAccessFromIndexSignature": true,
-    "noUncheckedIndexedAccess": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "declaration": true,
-    "noEmit": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true
-  },
-  "include": [
-    "playground",
-    "src/**/*.ts"
-  ]
+	"compilerOptions": {
+		"target": "es2020",
+		"lib": ["esnext"],
+		"module": "Preserve",
+		"allowImportingTsExtensions": true,
+		"strict": true,
+		"noFallthroughCasesInSwitch": true,
+		"noImplicitOverride": true,
+		"noImplicitReturns": true,
+		"noPropertyAccessFromIndexSignature": true,
+		"noUncheckedIndexedAccess": true,
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
+		"declaration": true,
+		"noEmit": true,
+		"esModuleInterop": true,
+		"skipLibCheck": true
+	},
+	"include": ["playground", "src/**/*.ts"]
 }

@@ -1,60 +1,47 @@
 import type { Observable } from "rxjs";
-import type * as procedure from "./procedure";
-
-export type AnyFunction = (...args: any[]) => any;
-
-export type Procedure = typeof procedure;
-
-export type ProcedureAny<T extends keyof Procedure = keyof Procedure> =
-  ReturnType<Procedure[T]>;
-
-export type ProcedureType = ProcedureAny["type"];
-
-export type ProcedureRecord = {
-  [key: string]: ProcedureAny | ProcedureRecord;
-};
-
+import type { AnyFunction } from "./main/server";
 export interface TIPCEventMap {
-  message: unknown[];
-  send: [path: string[], args: unknown[]];
-  invoke: [path: string[], args: unknown[]];
-  subscribe: [path: string[], subscribeId: string];
-  unsubscribe: [subscribeId: string];
-  subscription: [subscribeId: string, data: unknown];
+	message: unknown[];
+	send: [path: string[], args: unknown[]];
+	invoke: [path: string[], args: unknown[]];
+	subscribe: [path: string[], subscribeId: string];
+	unsubscribe: [subscribeId: string];
+	subscription: [subscribeId: string, data: unknown];
 }
 
-export interface TIPCMessage<
-  K extends keyof TIPCEventMap = keyof TIPCEventMap
-> {
-  payload: K;
-  args: TIPCEventMap[K];
+export interface TIPCMessage<K extends keyof TIPCEventMap = keyof TIPCEventMap> {
+	payload: K;
+	args: TIPCEventMap[K];
 }
 
 export type AllTIPCInvoke = TIPCMessage<"invoke">;
 
 type WithEvent<T> = T & {
-  event: Electron.IpcMainEvent & Electron.IpcMainInvokeEvent;
+	event: Electron.IpcMainEvent & Electron.IpcMainInvokeEvent;
 };
 
 export type AllTIPCMessage =
-  | TIPCMessage<"message">
-  | TIPCMessage<"unsubscribe">
-  | TIPCMessage<"send">
-  | TIPCMessage<"subscribe">;
+	| TIPCMessage<"message">
+	| TIPCMessage<"unsubscribe">
+	| TIPCMessage<"send">
+	| TIPCMessage<"subscribe">;
 export type AllTIPCMessageWithEvent =
-  | WithEvent<TIPCMessage<"message">>
-  | WithEvent<TIPCMessage<"unsubscribe">>
-  | WithEvent<TIPCMessage<"send">>
-  | WithEvent<TIPCMessage<"subscribe">>;
+	| WithEvent<TIPCMessage<"message">>
+	| WithEvent<TIPCMessage<"unsubscribe">>
+	| WithEvent<TIPCMessage<"send">>
+	| WithEvent<TIPCMessage<"subscribe">>;
 
 type ObservableValue<T> = T extends Observable<infer K> ? K : never;
 
-type Subscribe<T> = (listener: (value: T) => void) =>  () => void
+type Subscribe<T> = (listener: (value: T) => void) => () => void;
 
-export type TIPCFunctions<T> = T extends ProcedureAny<"subscription">
-  ? Readonly<{ subscribe: Subscribe<ObservableValue<ReturnType<T>>> }>
-  : T extends ProcedureAny<"on">
-    ? Readonly<{ emit: (...args: Parameters<T>) => void }>
-    : T extends ProcedureAny<"handle">
-      ? Readonly<{ invoke: (...args: Parameters<T>) => Promise<Awaited<ReturnType<T>>> }>
-      : Readonly<{ [K in keyof T]: TIPCFunctions<T[K]> }>;
+export type TIPCFunctions<T> =
+	T extends AnyFunction<any, "subscription">
+		? Readonly<{ subscribe: Subscribe<ObservableValue<ReturnType<T>>> }>
+		: T extends AnyFunction<any, "on">
+			? Readonly<{ emit: (...args: Parameters<T>) => void }>
+			: T extends AnyFunction<any, "handle">
+				? Readonly<{
+						invoke: (...args: Parameters<T>) => Promise<Awaited<ReturnType<T>>>;
+					}>
+				: Readonly<{ [K in keyof T]: TIPCFunctions<T[K]> }>;
