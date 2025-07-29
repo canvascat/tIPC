@@ -1,28 +1,24 @@
 {
-  "compilerOptions": {
-    "composite": true,
-    "target": "es2020",
-    "jsx": "react",
-    "lib": [
-      "esnext"
-    ],
-    "module": "Preserve",
-    "strict": true,
-    "noFallthroughCasesInSwitch": true,
-    "noImplicitOverride": true,
-    "noImplicitReturns": true,
-    "noPropertyAccessFromIndexSignature": true,
-    "noUncheckedIndexedAccess": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "declaration": true,
-    "declarationDir": "dist",
-    "declarationMap": true,
-    "outDir": "./dist",
-    "esModuleInterop": true,
-    "skipLibCheck": true
-  },
-  "include": [
-    "src"
-  ]
+	"compilerOptions": {
+		"composite": true,
+		"target": "es2020",
+		"jsx": "react",
+		"lib": ["esnext"],
+		"module": "Preserve",
+		"strict": true,
+		"noFallthroughCasesInSwitch": true,
+		"noImplicitOverride": true,
+		"noImplicitReturns": true,
+		"noPropertyAccessFromIndexSignature": true,
+		"noUncheckedIndexedAccess": true,
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
+		"declaration": true,
+		"declarationDir": "dist",
+		"declarationMap": true,
+		"outDir": "./dist",
+		"esModuleInterop": true,
+		"skipLibCheck": true
+	},
+	"include": ["src"]
 }
