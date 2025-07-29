@@ -1,138 +1,111 @@
 {
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": [
-    "react",
-    "unicorn",
-    "import",
-    "promise",
-    "node"
-  ],
-  "rules": {
-    "react/jsx-uses-react": "off",
-    "react/react-in-jsx-scope": "off",
-    "react-hooks/rules-of-hooks": "error",
-    "react-hooks/exhaustive-deps": "warn",
-    "no-unused-vars": "off",
-    "@typescript-eslint/no-unused-vars": [
-      "warn",
-      {
-        "argsIgnorePattern": "^_",
-        "varsIgnorePattern": "^_",
-        "destructuredArrayIgnorePattern": "^_"
-      }
-    ],
-    "no-console": [
-      "warn",
-      {
-        "allow": [
-          "debug",
-          "error",
-          "warn"
-        ]
-      }
-    ],
-    "unicorn/prefer-node-protocol": "error",
-    "unicorn/prefer-module": "error",
-    "unicorn/prefer-top-level-await": "warn",
-    "unicorn/no-array-for-each": "warn",
-    "unicorn/no-null": "off",
-    "import/no-duplicates": "error",
-    "import/order": [
-      "error",
-      {
-        "groups": [
-          "builtin",
-          "external",
-          "internal",
-          "parent",
-          "sibling",
-          "index"
-        ],
-        "alphabetize": {
-          "order": "asc"
-        }
-      }
-    ],
-    "promise/always-return": "off",
-    "promise/no-return-wrap": "error",
-    "promise/param-names": "off",
-    "promise/catch-or-return": "off",
-    "promise/no-nesting": "warn",
-    "promise/no-promise-in-callback": "warn",
-    "promise/no-callback-in-promise": "warn",
-    "node/no-missing-import": "off",
-    "node/no-unsupported-features/es-syntax": "off",
-    "node/prefer-global/process": "error"
-  },
-  "env": {
-    "browser": true,
-    "node": true,
-    "es2022": true
-  },
-  "parserOptions": {
-    "ecmaVersion": 2022,
-    "sourceType": "module",
-    "ecmaFeatures": {
-      "jsx": true
-    }
-  },
-  "settings": {
-    "react": {
-      "version": "detect"
-    }
-  },
-  "ignores": [
-    "dist/**",
-    "dist-electron/**",
-    "node_modules/**",
-    "coverage/**"
-  ],
-  "overrides": [
-    {
-      "files": [
-        "**/electron/**/*.ts",
-        "**/electron/**/*.js"
-      ],
-      "env": {
-        "node": true,
-        "browser": false
-      },
-      "rules": {
-        "no-console": "off",
-        "node/prefer-global/process": "off"
-      }
-    },
-    {
-      "files": [
-        "**/src/**/*.tsx",
-        "**/src/**/*.jsx"
-      ],
-      "env": {
-        "browser": true,
-        "node": false
-      },
-      "rules": {
-        "node/prefer-global/process": "off"
-      }
-    },
-    {
-      "files": [
-        "**/*.config.*",
-        "**/vite.config.*",
-        "**/tsdown.config.*"
-      ],
-      "rules": {
-        "no-console": "off",
-        "@typescript-eslint/no-unused-vars": "off"
-      }
-    },
-    {
-      "files": [
-        "packages/electron-tipc/**/*.ts"
-      ],
-      "rules": {
-        "no-console": "off"
-      }
-    }
-  ]
+	"$schema": "./node_modules/oxlint/configuration_schema.json",
+	"plugins": ["react", "unicorn", "import", "promise", "node"],
+	"rules": {
+		"react/jsx-uses-react": "off",
+		"react/react-in-jsx-scope": "off",
+		"react-hooks/rules-of-hooks": "error",
+		"react-hooks/exhaustive-deps": "warn",
+		"no-unused-vars": "off",
+		"@typescript-eslint/no-unused-vars": [
+			"warn",
+			{
+				"argsIgnorePattern": "^_",
+				"varsIgnorePattern": "^_",
+				"destructuredArrayIgnorePattern": "^_"
+			}
+		],
+		"no-console": [
+			"warn",
+			{
+				"allow": ["debug", "error", "warn"]
+			}
+		],
+		"unicorn/prefer-node-protocol": "error",
+		"unicorn/prefer-module": "error",
+		"unicorn/prefer-top-level-await": "warn",
+		"unicorn/no-array-for-each": "warn",
+		"unicorn/no-null": "off",
+		"import/no-duplicates": "error",
+		"import/order": [
+			"error",
+			{
+				"groups": [
+					"builtin",
+					"external",
+					"internal",
+					"parent",
+					"sibling",
+					"index"
+				],
+				"alphabetize": {
+					"order": "asc"
+				}
+			}
+		],
+		"promise/always-return": "off",
+		"promise/no-return-wrap": "error",
+		"promise/param-names": "off",
+		"promise/catch-or-return": "off",
+		"promise/no-nesting": "warn",
+		"promise/no-promise-in-callback": "warn",
+		"promise/no-callback-in-promise": "warn",
+		"node/no-missing-import": "off",
+		"node/no-unsupported-features/es-syntax": "off",
+		"node/prefer-global/process": "error"
+	},
+	"env": {
+		"browser": true,
+		"node": true,
+		"es2022": true
+	},
+	"parserOptions": {
+		"ecmaVersion": 2022,
+		"sourceType": "module",
+		"ecmaFeatures": {
+			"jsx": true
+		}
+	},
+	"settings": {
+		"react": {
+			"version": "detect"
+		}
+	},
+	"ignores": ["dist/**", "dist-electron/**", "node_modules/**", "coverage/**"],
+	"overrides": [
+		{
+			"files": ["**/electron/**/*.ts", "**/electron/**/*.js"],
+			"env": {
+				"node": true,
+				"browser": false
+			},
+			"rules": {
+				"no-console": "off",
+				"node/prefer-global/process": "off"
+			}
+		},
+		{
+			"files": ["**/src/**/*.tsx", "**/src/**/*.jsx"],
+			"env": {
+				"browser": true,
+				"node": false
+			},
+			"rules": {
+				"node/prefer-global/process": "off"
+			}
+		},
+		{
+			"files": ["**/*.config.*", "**/vite.config.*", "**/tsdown.config.*"],
+			"rules": {
+				"no-console": "off",
+				"@typescript-eslint/no-unused-vars": "off"
+			}
+		},
+		{
+			"files": ["packages/electron-tipc/**/*.ts"],
+			"rules": {
+				"no-console": "off"
+			}
+		}
+	]
 }
