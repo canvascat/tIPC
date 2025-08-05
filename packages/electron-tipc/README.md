@@ -29,15 +29,21 @@ yarn add tipc-electron
 ### 1. Define Procedures in Main Process
 
 ```typescript
-// main.ts
-import { createTIPCServer, procedure } from "tipc-electron/main";
+// main/trpc.ts
+import { initTIPC } from "tipc-electron/main";
+
+const t = initTIPC.create();
+export const procedure = t.procedure;
+
+// main/router/index.ts
+import { procedure } from "../trpc";
 import { BehaviorSubject } from "rxjs";
 
 // Define data state
 const counter$ = new BehaviorSubject(0);
 
 // Define API procedures
-const appRouter = {
+export const appRouter = {
 	// Request-response mode: Get user information
 	user: {
 		getInfo: procedure.handle(async (userId: string) => {
@@ -84,6 +90,10 @@ const appRouter = {
 	},
 };
 
+// main/index.ts
+import { createTIPCServer } from "tipc-electron/main";
+import { appRouter } from "./router";
+
 // Create server
 const dispose = createTIPCServer({ functions: appRouter });
 
@@ -98,15 +108,17 @@ export type AppRouter = typeof appRouter;
 ### 2. Use Client in Renderer Process
 
 ```typescript
-// renderer.ts
+// renderer/tipc.ts
 import { createTIPCClient } from "tipc-electron/renderer";
-import { ipcRenderer } from "electron";
-import type { AppRouter } from "./main";
+import type * as functions from "@main/router";
 
-// Create type-safe client
-const tipc = createTIPCClient<AppRouter>(ipcRenderer);
+const tipc = createTIPCClient<typeof functions>(window.ipcRenderer);
 
-// Use API
+export default tipc;
+
+// Usage example
+import tipc from "./tipc";
+
 async function main() {
 	// 1. Request-response: calls return Promise
 	const userInfo = await tipc.user.getInfo.invoke("123");
@@ -155,27 +167,30 @@ export interface AppContext {
 	user?: { id: string; role: string };
 }
 
-// main.ts
+// main/trpc.ts
 import { initTIPC } from "tipc-electron/main";
-import type { AppContext } from "./types/context";
+import type { AppContext } from "../types/context";
 
 const t = initTIPC.context<AppContext>().create();
-const { procedure } = t;
+export const procedure = t.procedure;
 
-const appRouter = {
-	user: {
-		getProfile: procedure.handle(async function (userId: string) {
-			// Access context information
-			console.log(`Request from sender: ${this.senderId}`);
-			console.log(`Current user: ${this.user?.id}`);
+// main/router/user.ts
+export const user = {
+	getProfile: procedure.handle(async function (userId: string) {
+		// Access context information
+		console.log(`Request from sender: ${this.senderId}`);
+		console.log(`Current user: ${this.user?.id}`);
 
-			return { id: userId, name: "John Doe" };
-		}),
-	},
+		return { id: userId, name: "John Doe" };
+	}),
 };
 
+// main/index.ts
+import { createTIPCServer } from "tipc-electron/main";
+import { user } from "./router/user";
+
 const dispose = createTIPCServer({
-	functions: appRouter,
+	functions: { user },
 	createContext: (options) => ({
 		...options,
 		user: { id: "current-user", role: "admin" }, // Add custom context
@@ -190,6 +205,7 @@ Here's a practical example of managing Electron windows:
 ```typescript
 // main/router/win.ts
 import { BrowserWindow } from "electron";
+import { fromEvent, merge } from "rxjs";
 import { procedure } from "../trpc";
 
 export const win = {
@@ -208,21 +224,38 @@ export const win = {
 	}),
 
 	// Real-time window state subscription
-	state: procedure.subscription(function () {
-		const window = BrowserWindow.fromId(this.senderId);
-		if (!window) return new Observable();
-
-		return fromEvent(window, "resize").pipe(
-			map(() => ({
-				isMaximized: window.isMaximized(),
-				bounds: window.getBounds(),
-			})),
-		);
-	}),
+	event: {
+		maximize: procedure.subscription(function () {
+			const win = BrowserWindow.fromId(this.senderId);
+			if (!win) throw new Error("Window not found");
+			return merge(
+				fromEvent(win, "maximize", () => true),
+				fromEvent(win, "unmaximize", () => false),
+			);
+		}),
+	},
 };
 ```
 
 ## API Reference
+
+### Initialization
+
+#### `initTIPC`
+
+Better TypeScript support initialization pattern:
+
+```typescript
+import { initTIPC } from "tipc-electron/main";
+
+// Basic usage
+const t = initTIPC.create();
+const { procedure } = t;
+
+// With custom context
+const t = initTIPC.context<MyContext>().create();
+const { procedure } = t;
+```
 
 ### Procedure Types
 
@@ -298,20 +331,17 @@ interface Options<Context> {
 - `functions`: Your router object containing all procedures
 - `createContext`: Optional function to create custom context
 
-#### `initTIPC`
+### Client Creation
 
-Alternative initialization pattern for better TypeScript support:
+#### `createTIPCClient<RemoteFunctions>(ipcRenderer)`
+
+Creates a type-safe client:
 
 ```typescript
-import { initTIPC } from "tipc-electron/main";
+import { createTIPCClient } from "tipc-electron/renderer";
+import type * as functions from "@main/router";
 
-// Basic usage
-const t = initTIPC.create();
-const { procedure } = t;
-
-// With custom context
-const t = initTIPC.context<MyContext>().create();
-const { procedure } = t;
+const tipc = createTIPCClient<typeof functions>(window.ipcRenderer);
 ```
 
 ### Nested Routes
@@ -373,7 +403,7 @@ const unsubscribe = tipc.data.realtime.subscribe((data) => {
 Define router types in a separate file to share between main and renderer processes:
 
 ```typescript
-// types/api.ts
+// main/router/index.ts
 export type AppRouter = typeof appRouter;
 ```
 
