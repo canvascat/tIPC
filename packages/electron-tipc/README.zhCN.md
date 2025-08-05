@@ -29,15 +29,21 @@ yarn add tipc-electron
 ### 1. 在主进程中定义程序（Procedures）
 
 ```typescript
-// main.ts
-import { createTIPCServer, procedure } from "tipc-electron/main";
+// main/trpc.ts
+import { initTIPC } from "tipc-electron/main";
+
+const t = initTIPC.create();
+export const procedure = t.procedure;
+
+// main/router/index.ts
+import { procedure } from "../trpc";
 import { BehaviorSubject } from "rxjs";
 
 // 定义数据状态
 const counter$ = new BehaviorSubject(0);
 
 // 定义 API 程序
-const appRouter = {
+export const appRouter = {
 	// 请求-响应模式：获取用户信息
 	user: {
 		getInfo: procedure.handle(async (userId: string) => {
@@ -84,6 +90,10 @@ const appRouter = {
 	},
 };
 
+// main/index.ts
+import { createTIPCServer } from "tipc-electron/main";
+import { appRouter } from "./router";
+
 // 创建服务器
 const dispose = createTIPCServer({ functions: appRouter });
 
@@ -98,15 +108,17 @@ export type AppRouter = typeof appRouter;
 ### 2. 在渲染进程中使用客户端
 
 ```typescript
-// renderer.ts
+// renderer/tipc.ts
 import { createTIPCClient } from "tipc-electron/renderer";
-import { ipcRenderer } from "electron";
-import type { AppRouter } from "./main";
+import type * as functions from "@main/router";
 
-// 创建类型安全的客户端
-const tipc = createTIPCClient<AppRouter>(ipcRenderer);
+const tipc = createTIPCClient<typeof functions>(window.ipcRenderer);
 
-// 使用 API
+export default tipc;
+
+// 使用示例
+import tipc from "./tipc";
+
 async function main() {
 	// 1. 请求-响应：调用返回 Promise
 	const userInfo = await tipc.user.getInfo.invoke("123");
@@ -155,27 +167,30 @@ export interface AppContext {
 	user?: { id: string; role: string };
 }
 
-// main.ts
+// main/trpc.ts
 import { initTIPC } from "tipc-electron/main";
-import type { AppContext } from "./types/context";
+import type { AppContext } from "../types/context";
 
 const t = initTIPC.context<AppContext>().create();
-const { procedure } = t;
+export const procedure = t.procedure;
 
-const appRouter = {
-	user: {
-		getProfile: procedure.handle(async function (userId: string) {
-			// 访问上下文信息
-			console.log(`来自发送者的请求: ${this.senderId}`);
-			console.log(`当前用户: ${this.user?.id}`);
+// main/router/user.ts
+export const user = {
+	getProfile: procedure.handle(async function (userId: string) {
+		// 访问上下文信息
+		console.log(`来自发送者的请求: ${this.senderId}`);
+		console.log(`当前用户: ${this.user?.id}`);
 
-			return { id: userId, name: "John Doe" };
-		}),
-	},
+		return { id: userId, name: "John Doe" };
+	}),
 };
 
+// main/index.ts
+import { createTIPCServer } from "tipc-electron/main";
+import { user } from "./router/user";
+
 const dispose = createTIPCServer({
-	functions: appRouter,
+	functions: { user },
 	createContext: (options) => ({
 		...options,
 		user: { id: "current-user", role: "admin" }, // 添加自定义上下文
@@ -190,6 +205,7 @@ const dispose = createTIPCServer({
 ```typescript
 // main/router/win.ts
 import { BrowserWindow } from "electron";
+import { fromEvent, merge } from "rxjs";
 import { procedure } from "../trpc";
 
 export const win = {
@@ -208,21 +224,38 @@ export const win = {
 	}),
 
 	// 实时窗口状态订阅
-	state: procedure.subscription(function () {
-		const window = BrowserWindow.fromId(this.senderId);
-		if (!window) return new Observable();
-
-		return fromEvent(window, "resize").pipe(
-			map(() => ({
-				isMaximized: window.isMaximized(),
-				bounds: window.getBounds(),
-			})),
-		);
-	}),
+	event: {
+		maximize: procedure.subscription(function () {
+			const win = BrowserWindow.fromId(this.senderId);
+			if (!win) throw new Error("Window not found");
+			return merge(
+				fromEvent(win, "maximize", () => true),
+				fromEvent(win, "unmaximize", () => false),
+			);
+		}),
+	},
 };
 ```
 
 ## API 参考
+
+### 初始化
+
+#### `initTIPC`
+
+更好的 TypeScript 支持的初始化模式：
+
+```typescript
+import { initTIPC } from "tipc-electron/main";
+
+// 基本用法
+const t = initTIPC.create();
+const { procedure } = t;
+
+// 使用自定义上下文
+const t = initTIPC.context<MyContext>().create();
+const { procedure } = t;
+```
 
 ### 程序类型（Procedure Types）
 
@@ -298,20 +331,17 @@ interface Options<Context> {
 - `functions`: 包含所有程序的路由对象
 - `createContext`: 可选函数，用于创建自定义上下文
 
-#### `initTIPC`
+### 客户端创建
 
-更好的 TypeScript 支持的替代初始化模式：
+#### `createTIPCClient<RemoteFunctions>(ipcRenderer)`
+
+创建一个类型安全的客户端：
 
 ```typescript
-import { initTIPC } from "tipc-electron/main";
+import { createTIPCClient } from "tipc-electron/renderer";
+import type * as functions from "@main/router";
 
-// 基本用法
-const t = initTIPC.create();
-const { procedure } = t;
-
-// 使用自定义上下文
-const t = initTIPC.context<MyContext>().create();
-const { procedure } = t;
+const tipc = createTIPCClient<typeof functions>(window.ipcRenderer);
 ```
 
 ### 嵌套路由
@@ -373,7 +403,7 @@ const unsubscribe = tipc.data.realtime.subscribe((data) => {
 将路由类型定义在单独的文件中，在主进程和渲染进程之间共享：
 
 ```typescript
-// types/api.ts
+// main/router/index.ts
 export type AppRouter = typeof appRouter;
 ```
 
