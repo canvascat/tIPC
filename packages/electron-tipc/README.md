@@ -8,7 +8,7 @@ A type-safe IPC communication library for Electron with tRPC-like API design.
 
 - 🔒 **Fully Type-Safe** - End-to-end type inference powered by TypeScript
 - 🚀 **Easy to Use** - Intuitive API design similar to tRPC
-- 📡 **Multiple Communication Modes** - Support for request-response, event emission, and real-time subscriptions
+- 📡 **Multiple Communication Modes** - Support for request-response, event emission, real-time subscriptions, and value retrieval
 - 🌊 **Reactive Programming** - Subscription mechanism based on RxJS Observable
 - 🔄 **Automated** - Automatic management and cleanup of subscriptions
 - 📦 **Lightweight** - Minimal dependencies and bundle size
@@ -88,6 +88,12 @@ export const appRouter = {
 			counter$.next(0);
 		}),
 	},
+
+	// Value retrieval mode: Get current state
+	state: {
+		getCounter: procedure.value(() => counter$.value),
+		getTimestamp: procedure.value(() => Date.now()),
+	},
 };
 
 // main/index.ts
@@ -137,6 +143,13 @@ async function main() {
 		document.getElementById("counter")!.textContent = count.toString();
 	});
 
+	// 4. Value retrieval: get current state synchronously
+	const currentCount = tipc.state.getCounter.get();
+	console.log(`Current count: ${currentCount}`);
+
+	const timestamp = tipc.state.getTimestamp.get();
+	console.log(`Current timestamp: ${timestamp}`);
+
 	// Manipulate counter
 	await tipc.counter.increment.invoke(); // Counter +1
 	await tipc.counter.increment.invoke(); // Counter +1
@@ -161,7 +174,7 @@ You can create custom contexts to pass additional data to your procedures:
 // types/context.ts
 export interface AppContext {
 	senderId: number;
-	type: "invoke" | "emit" | "subscribe";
+	type: "invoke" | "emit" | "subscribe" | "get";
 	path: string[];
 	args: any[];
 	user?: { id: string; role: string };
@@ -221,6 +234,16 @@ export const win = {
 	getBounds: procedure.handle(function () {
 		const window = BrowserWindow.fromId(this.senderId);
 		return window?.getBounds();
+	}),
+
+	// Get current window state synchronously
+	getState: procedure.value(function () {
+		const window = BrowserWindow.fromId(this.senderId);
+		return {
+			isMaximized: window?.isMaximized() ?? false,
+			isMinimized: window?.isMinimized() ?? false,
+			isVisible: window?.isVisible() ?? false,
+		};
 	}),
 
 	// Real-time window state subscription
@@ -315,6 +338,24 @@ const unsubscribe = tipc.timer.subscribe((tick) => {
 unsubscribe();
 ```
 
+#### `procedure.value(fn)`
+
+Creates a value retrieval procedure that returns data synchronously.
+
+```typescript
+const getCurrentUser = procedure.value(() => {
+	return currentUser; // Must return non-Promise value
+});
+```
+
+Get value in renderer process:
+
+```typescript
+const user = tipc.getCurrentUser.get(); // Synchronous call
+```
+
+**Note**: The function must return a non-Promise value. For async operations, use `procedure.handle` instead.
+
 ### Server Configuration
 
 #### `createTIPCServer(options)`
@@ -380,6 +421,9 @@ const appRouter = {
 		realtime: procedure.subscription(() => {
 			/* ... */
 		}),
+		current: procedure.value(() => {
+			/* ... */
+		}),
 	},
 };
 ```
@@ -393,6 +437,58 @@ tipc.auth.user.logout.emit();
 
 const unsubscribe = tipc.data.realtime.subscribe((data) => {
 	console.log(data);
+});
+
+const currentData = tipc.data.current.get();
+```
+
+## Type System
+
+### Function Type Inference
+
+The library automatically infers the correct function type based on the procedure used:
+
+```typescript
+// These types are automatically inferred
+type UserFunctions = {
+	user: {
+		getInfo: {
+			invoke: (
+				userId: string,
+			) => Promise<{ id: string; name: string; email: string }>;
+		};
+		logout: {
+			emit: () => void;
+		};
+		subscribe: {
+			subscribe: (listener: (data: any) => void) => () => void;
+		};
+		state: {
+			get: () => { isLoggedIn: boolean; lastLogin: Date };
+		};
+	};
+};
+```
+
+### Context Types
+
+Custom context types are fully typed:
+
+```typescript
+interface AppContext {
+	senderId: number;
+	user?: { id: string; role: string };
+	timestamp: number;
+}
+
+const t = initTIPC.context<AppContext>().create();
+const { procedure } = t;
+
+// Context is properly typed in all procedures
+const getUser = procedure.handle(function (id: string) {
+	console.log(this.senderId); // number
+	console.log(this.user?.role); // string | undefined
+	console.log(this.timestamp); // number
 });
 ```
 
@@ -476,8 +572,39 @@ const appRouter = {
 				isMaximized: window?.isMaximized(),
 			};
 		}),
+
+		getState: procedure.value(function () {
+			const window = BrowserWindow.fromId(this.senderId);
+			return {
+				isMaximized: window?.isMaximized() ?? false,
+				isMinimized: window?.isMinimized() ?? false,
+			};
+		}),
 	},
 };
+```
+
+### 6. Value vs Handle
+
+Choose the right procedure type for your use case:
+
+```typescript
+// Use procedure.value for synchronous, non-async operations
+const getConfig = procedure.value(() => appConfig);
+
+// Use procedure.handle for async operations
+const fetchData = procedure.handle(async () => {
+	const data = await api.fetchData();
+	return data;
+});
+
+// Use procedure.on for one-way communication
+const logEvent = procedure.on((event: string) => {
+	console.log(event);
+});
+
+// Use procedure.subscription for real-time data
+const dataStream = procedure.subscription(() => dataSubject$);
 ```
 
 ## Important Notes
@@ -488,6 +615,8 @@ const appRouter = {
 4. **Security**: Ensure Node.js integration is disabled in production environment
 5. **Context Access**: Use `this` keyword to access context within procedures
 6. **Window Management**: Use `BrowserWindow.fromId(this.senderId)` to access the calling window
+7. **Value Procedures**: `procedure.value` functions must return non-Promise values and are executed synchronously
+8. **Type Safety**: All procedure types are automatically inferred for maximum type safety
 
 ## License
 

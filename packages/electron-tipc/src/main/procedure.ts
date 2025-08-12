@@ -14,6 +14,16 @@ export function create<Context>() {
 		return _listener;
 	}
 
+	function value<T>(
+		listener: (this: Context) => T extends Promise<any> ? never : T,
+	) {
+		function _listener(this: Context): T extends Promise<any> ? never : T {
+			return listener.apply(this);
+		}
+		_listener.type = "get" as const;
+		return _listener;
+	}
+
 	function on<T extends AnyFunction>(listener: T) {
 		function _listener(this: Context, ...args: Parameters<T>): void {
 			listener.apply(this, args);
@@ -30,9 +40,11 @@ export function create<Context>() {
 		return _listener;
 	}
 
-	return { handle, on, subscription };
+	return { handle, on, subscription, value };
 }
 
 type ObjectValue<T> = T[keyof T];
 
-export type FunctionType = ReturnType<ObjectValue<ReturnType<typeof create>>>["type"];
+export type FunctionType = ReturnType<
+	ObjectValue<ReturnType<typeof create>>
+>["type"];

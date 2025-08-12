@@ -13,7 +13,7 @@ import type { FunctionType } from "./main/procedure";
 export function createTIPCClient<RemoteFunctions>(
 	ipcRenderer: Pick<
 		IpcRenderer,
-		"addListener" | "removeListener" | "send" | "invoke"
+		"addListener" | "removeListener" | "send" | "invoke" | "sendSync"
 	>,
 ) {
 	const observable = fromEvent<TIPCMessage<"subscription">>(
@@ -35,6 +35,11 @@ export function createTIPCClient<RemoteFunctions>(
 		} satisfies AllTIPCInvoke);
 	const sendMessage = (path: string[], ...args: any[]) =>
 		postMessage({ payload: "send", args: [path, args] });
+	const getValue = (path: string[]) =>
+		ipcRenderer.sendSync(channel.get, {
+			payload: "get",
+			args: [path],
+		} satisfies TIPCMessage<"get">);
 
 	const subscribe = (path: string[], listener: (data: any) => void) => {
 		const subscribeId = crypto.randomUUID().replaceAll("-", "");
@@ -60,6 +65,8 @@ export function createTIPCClient<RemoteFunctions>(
 				return (...args: any[]) => invoke(path, ...args);
 			case "subscribe":
 				return (...args: any[]) => subscribe(path, args[0]);
+			case "get":
+				return () => getValue(path);
 			default:
 				throw new Error(`Unknown method: ${method}`);
 		}

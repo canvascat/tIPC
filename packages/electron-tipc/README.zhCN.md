@@ -8,7 +8,7 @@
 
 - 🔒 **完全类型安全** - 基于 TypeScript 的端到端类型推断
 - 🚀 **简单易用** - 类似 tRPC 的直观 API 设计
-- 📡 **多种通信模式** - 支持请求-响应、事件发送和实时订阅
+- 📡 **多种通信模式** - 支持请求-响应、事件发送、实时订阅和值获取
 - 🌊 **响应式编程** - 基于 RxJS Observable 的订阅机制
 - 🔄 **自动化** - 支持订阅的自动管理和清理
 - 📦 **轻量级** - 最小化的依赖和打包体积
@@ -88,6 +88,12 @@ export const appRouter = {
 			counter$.next(0);
 		}),
 	},
+
+	// 值获取模式：获取当前状态
+	state: {
+		getCounter: procedure.value(() => counter$.value),
+		getTimestamp: procedure.value(() => Date.now()),
+	},
 };
 
 // main/index.ts
@@ -133,9 +139,16 @@ async function main() {
 
 	// 3. 实时订阅：监听数据变化
 	const unsubscribe = tipc.counter.subscribe.subscribe((count) => {
-		console.log(`当前计数: ${count}`);
+		console.log(`Current count: ${count}`);
 		document.getElementById("counter")!.textContent = count.toString();
 	});
+
+	// 4. 值获取：同步获取当前状态
+	const currentCount = tipc.state.getCounter.get();
+	console.log(`Current count: ${currentCount}`);
+
+	const timestamp = tipc.state.getTimestamp.get();
+	console.log(`Current timestamp: ${timestamp}`);
 
 	// 操作计数器
 	await tipc.counter.increment.invoke(); // 计数器 +1
@@ -155,13 +168,13 @@ main();
 
 ### 自定义上下文
 
-你可以创建自定义上下文来向程序传递额外的数据：
+您可以创建自定义上下文来向程序传递额外的数据：
 
 ```typescript
 // types/context.ts
 export interface AppContext {
 	senderId: number;
-	type: "invoke" | "emit" | "subscribe";
+	type: "invoke" | "emit" | "subscribe" | "get";
 	path: string[];
 	args: any[];
 	user?: { id: string; role: string };
@@ -178,8 +191,8 @@ export const procedure = t.procedure;
 export const user = {
 	getProfile: procedure.handle(async function (userId: string) {
 		// 访问上下文信息
-		console.log(`来自发送者的请求: ${this.senderId}`);
-		console.log(`当前用户: ${this.user?.id}`);
+		console.log(`Request from sender: ${this.senderId}`);
+		console.log(`Current user: ${this.user?.id}`);
 
 		return { id: userId, name: "John Doe" };
 	}),
@@ -223,6 +236,16 @@ export const win = {
 		return window?.getBounds();
 	}),
 
+	// 同步获取当前窗口状态
+	getState: procedure.value(function () {
+		const window = BrowserWindow.fromId(this.senderId);
+		return {
+			isMaximized: window?.isMaximized() ?? false,
+			isMinimized: window?.isMinimized() ?? false,
+			isVisible: window?.isVisible() ?? false,
+		};
+	}),
+
 	// 实时窗口状态订阅
 	event: {
 		maximize: procedure.subscription(function () {
@@ -243,7 +266,7 @@ export const win = {
 
 #### `initTIPC`
 
-更好的 TypeScript 支持的初始化模式：
+更好的 TypeScript 支持初始化模式：
 
 ```typescript
 import { initTIPC } from "tipc-electron/main";
@@ -257,11 +280,11 @@ const t = initTIPC.context<MyContext>().create();
 const { procedure } = t;
 ```
 
-### 程序类型（Procedure Types）
+### 程序类型
 
 #### `procedure.handle(fn)`
 
-创建一个请求-响应类型的程序，支持异步操作。
+创建一个支持异步操作的请求-响应类型程序。
 
 ```typescript
 const getUserById = procedure.handle(async (id: string) => {
@@ -278,7 +301,7 @@ const user = await tipc.getUserById.invoke("123");
 
 #### `procedure.on(fn)`
 
-创建一个事件监听程序，用于单向消息发送。
+创建一个用于单向消息发送的事件监听器程序。
 
 ```typescript
 const logMessage = procedure.on((level: string, message: string) => {
@@ -294,7 +317,7 @@ tipc.logMessage.emit("INFO", "Hello world");
 
 #### `procedure.subscription(fn)`
 
-创建一个订阅程序，返回 RxJS Observable。
+创建一个返回 RxJS Observable 的订阅程序。
 
 ```typescript
 import { interval } from "rxjs";
@@ -315,6 +338,24 @@ const unsubscribe = tipc.timer.subscribe((tick) => {
 unsubscribe();
 ```
 
+#### `procedure.value(fn)`
+
+创建一个同步返回数据的值获取程序。
+
+```typescript
+const getCurrentUser = procedure.value(() => {
+	return currentUser; // 必须返回非 Promise 值
+});
+```
+
+在渲染进程中获取值：
+
+```typescript
+const user = tipc.getCurrentUser.get(); // 同步调用
+```
+
+**注意**：函数必须返回非 Promise 值。对于异步操作，请使用 `procedure.handle`。
+
 ### 服务器配置
 
 #### `createTIPCServer(options)`
@@ -328,8 +369,8 @@ interface Options<Context> {
 }
 ```
 
-- `functions`: 包含所有程序的路由对象
-- `createContext`: 可选函数，用于创建自定义上下文
+- `functions`：包含所有程序的路由器对象
+- `createContext`：可选函数，用于创建自定义上下文
 
 ### 客户端创建
 
@@ -380,6 +421,9 @@ const appRouter = {
 		realtime: procedure.subscription(() => {
 			/* ... */
 		}),
+		current: procedure.value(() => {
+			/* ... */
+		}),
 	},
 };
 ```
@@ -394,13 +438,63 @@ tipc.auth.user.logout.emit();
 const unsubscribe = tipc.data.realtime.subscribe((data) => {
 	console.log(data);
 });
+
+const currentData = tipc.data.current.get();
+```
+
+## 类型系统
+
+### 函数类型推断
+
+库会自动根据使用的程序推断正确的函数类型：
+
+```typescript
+// 这些类型会自动推断
+type UserFunctions = {
+	user: {
+		getInfo: {
+			invoke: (userId: string) => Promise<{ id: string; name: string; email: string }>;
+		};
+		logout: {
+			emit: () => void;
+		};
+		subscribe: {
+			subscribe: (data: any) => void) => () => void;
+		};
+		state: {
+			get: () => { isLoggedIn: boolean; lastLogin: Date };
+		};
+	};
+};
+```
+
+### 上下文类型
+
+自定义上下文类型完全类型化：
+
+```typescript
+interface AppContext {
+	senderId: number;
+	user?: { id: string; role: string };
+	timestamp: number;
+}
+
+const t = initTIPC.context<AppContext>().create();
+const { procedure } = t;
+
+// 在所有程序中上下文都正确类型化
+const getUser = procedure.handle(function (id: string) {
+	console.log(this.senderId); // number
+	console.log(this.user?.role); // string | undefined
+	console.log(this.timestamp); // number
+});
 ```
 
 ## 最佳实践
 
 ### 1. 类型共享
 
-将路由类型定义在单独的文件中，在主进程和渲染进程之间共享：
+在单独的文件中定义路由器类型，以便在主进程和渲染进程之间共享：
 
 ```typescript
 // main/router/index.ts
@@ -427,7 +521,7 @@ const getUser = procedure.handle(async (id: string) => {
 
 ### 3. 订阅清理
 
-确保在组件销毁时取消订阅：
+确保在组件销毁时清理订阅：
 
 ```typescript
 useEffect(() => {
@@ -443,7 +537,7 @@ useEffect(() => {
 
 ### 4. 性能优化
 
-对于高频订阅，使用 RxJS 操作符进行优化：
+对高频订阅使用 RxJS 操作符：
 
 ```typescript
 import { throttleTime, distinctUntilChanged } from "rxjs";
@@ -476,18 +570,51 @@ const appRouter = {
 				isMaximized: window?.isMaximized(),
 			};
 		}),
+
+		getState: procedure.value(function () {
+			const window = BrowserWindow.fromId(this.senderId);
+			return {
+				isMaximized: window?.isMaximized() ?? false,
+				isMinimized: window?.isMinimized() ?? false,
+			};
+		}),
 	},
 };
 ```
 
-## 注意事项
+### 6. Value vs Handle
 
-1. **序列化限制**：传递的数据必须是可序列化的（JSON-safe）
-2. **内存管理**：记得取消不再需要的订阅以避免内存泄漏
+为您的用例选择正确的程序类型：
+
+```typescript
+// 对同步、非异步操作使用 procedure.value
+const getConfig = procedure.value(() => appConfig);
+
+// 对异步操作使用 procedure.handle
+const fetchData = procedure.handle(async () => {
+	const data = await api.fetchData();
+	return data;
+});
+
+// 对单向通信使用 procedure.on
+const logEvent = procedure.on((event: string) => {
+	console.log(event);
+});
+
+// 对实时数据使用 procedure.subscription
+const dataStream = procedure.subscription(() => dataSubject$);
+```
+
+## 重要注意事项
+
+1. **序列化限制**：传输的数据必须是可序列化的（JSON 安全）
+2. **内存管理**：记住取消未使用的订阅以避免内存泄漏
 3. **错误处理**：主进程中的错误会自动传播到渲染进程
-4. **安全性**：在生产环境中确保禁用 Node.js 集成
-5. **上下文访问**：在程序内使用 `this` 关键字访问上下文
+4. **安全性**：确保在生产环境中禁用 Node.js 集成
+5. **上下文访问**：在程序中使用 `this` 关键字访问上下文
 6. **窗口管理**：使用 `BrowserWindow.fromId(this.senderId)` 访问调用窗口
+7. **值程序**：`procedure.value` 函数必须返回非 Promise 值并同步执行
+8. **类型安全**：所有程序类型都会自动推断，确保最大类型安全性
 
 ## 许可证
 

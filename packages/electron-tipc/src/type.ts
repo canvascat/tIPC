@@ -3,13 +3,16 @@ import type { AnyFunction } from "./main/server";
 export interface TIPCEventMap {
 	message: unknown[];
 	send: [path: string[], args: unknown[]];
+	get: [path: string[]];
 	invoke: [path: string[], args: unknown[]];
 	subscribe: [path: string[], subscribeId: string];
 	unsubscribe: [subscribeId: string];
 	subscription: [subscribeId: string, data: unknown];
 }
 
-export interface TIPCMessage<K extends keyof TIPCEventMap = keyof TIPCEventMap> {
+export interface TIPCMessage<
+	K extends keyof TIPCEventMap = keyof TIPCEventMap,
+> {
 	payload: K;
 	args: TIPCEventMap[K];
 }
@@ -24,11 +27,13 @@ export type AllTIPCMessage =
 	| TIPCMessage<"message">
 	| TIPCMessage<"unsubscribe">
 	| TIPCMessage<"send">
+	| TIPCMessage<"get">
 	| TIPCMessage<"subscribe">;
 export type AllTIPCMessageWithEvent =
 	| WithEvent<TIPCMessage<"message">>
 	| WithEvent<TIPCMessage<"unsubscribe">>
 	| WithEvent<TIPCMessage<"send">>
+	| WithEvent<TIPCMessage<"get">>
 	| WithEvent<TIPCMessage<"subscribe">>;
 
 type ObservableValue<T> = T extends Observable<infer K> ? K : never;
@@ -44,4 +49,6 @@ export type TIPCFunctions<T> =
 				? Readonly<{
 						invoke: (...args: Parameters<T>) => Promise<Awaited<ReturnType<T>>>;
 					}>
-				: Readonly<{ [K in keyof T]: TIPCFunctions<T[K]> }>;
+				: T extends AnyFunction<any, "value">
+					? Readonly<{ get: () => ReturnType<T> }>
+					: Readonly<{ [K in keyof T]: TIPCFunctions<T[K]> }>;
