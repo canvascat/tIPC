@@ -12,7 +12,11 @@ function App() {
 		});
 	}, []);
 
-	console.debug(tipc.theme.themeSource.get());
+	useEffect(() => {
+		void tipc.theme.themeSource.get().then((themeSource) => {
+			console.debug(themeSource);
+		});
+	}, []);
 
 	return (
 		<div className="App">

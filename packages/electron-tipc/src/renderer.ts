@@ -1,28 +1,34 @@
 import type { IpcRenderer } from "electron";
-import { filter, fromEvent, map } from "rxjs";
+import { filter, fromEvent } from "rxjs";
 import { channel } from "./const";
 import { createFlatProxy, createRecursiveProxy } from "./create-proxy";
 import type {
 	AllTIPCInvoke,
 	AllTIPCMessage,
 	TIPCFunctions,
-	TIPCMessage,
+	TIPCSerializedError,
+	TIPCSubscribeOptions,
+	TIPCSubscriptionMessage,
 } from "./type";
 import type { FunctionType } from "./main/procedure";
 
 export function createTIPCClient<RemoteFunctions>(
 	ipcRenderer: Pick<
 		IpcRenderer,
-		"addListener" | "removeListener" | "send" | "invoke" | "sendSync"
+		"addListener" | "removeListener" | "send" | "invoke"
 	>,
 ) {
-	const observable = fromEvent<TIPCMessage<"subscription">>(
+	function deserializeError(error: TIPCSerializedError) {
+		const result = new Error(error.message);
+		result.name = error.name || "Error";
+		result.stack = error.stack;
+		return result;
+	}
+
+	const observable = fromEvent<TIPCSubscriptionMessage>(
 		ipcRenderer,
 		channel.message,
 		(_event, message) => message,
-	).pipe(
-		filter((msg) => msg.payload === "subscription"),
-		map(({ args: [subscribeId, data] }) => ({ subscribeId, data })),
 	);
 
 	const postMessage = (message: AllTIPCMessage) =>
@@ -36,20 +42,37 @@ export function createTIPCClient<RemoteFunctions>(
 	const sendMessage = (path: string[], ...args: any[]) =>
 		postMessage({ payload: "send", args: [path, args] });
 	const getValue = (path: string[]) =>
-		ipcRenderer.sendSync(channel.get, {
+		ipcRenderer.invoke(channel.invoke, {
 			payload: "get",
 			args: [path],
-		} satisfies TIPCMessage<"get">);
+		} satisfies AllTIPCInvoke);
 
-	const subscribe = (path: string[], listener: (data: any) => void) => {
+	const subscribe = (
+		path: string[],
+		args: unknown[],
+		listener: (data: any) => void,
+		options?: TIPCSubscribeOptions,
+	) => {
 		const subscribeId = crypto.randomUUID().replaceAll("-", "");
-		postMessage({ payload: "subscribe", args: [path, subscribeId] });
 		const sub = observable
-			.pipe(
-				filter((msg) => msg.subscribeId === subscribeId),
-				map((msg) => msg.data),
-			)
-			.subscribe(listener);
+			.pipe(filter((msg) => msg.args[0] === subscribeId))
+			.subscribe((msg) => {
+				switch (msg.payload) {
+					case "subscription":
+						listener(msg.args[1]);
+						break;
+					case "subscriptionError":
+						options?.onError?.(deserializeError(msg.args[1]));
+						sub.unsubscribe();
+						break;
+					case "subscriptionComplete":
+						options?.onComplete?.();
+						sub.unsubscribe();
+						break;
+				}
+			});
+
+		postMessage({ payload: "subscribe", args: [path, subscribeId, args] });
 
 		return () => {
 			sub.unsubscribe();
@@ -64,7 +87,23 @@ export function createTIPCClient<RemoteFunctions>(
 			case "invoke":
 				return (...args: any[]) => invoke(path, ...args);
 			case "subscribe":
-				return (...args: any[]) => subscribe(path, args[0]);
+				return (...args: any[]) => {
+					const lastArg = args.at(-1);
+					const hasOptions = typeof lastArg !== "function";
+					const listener = hasOptions ? args.at(-2) : lastArg;
+					const subscriptionArgs = hasOptions
+						? args.slice(0, -2)
+						: args.slice(0, -1);
+					if (typeof listener !== "function") {
+						throw new TypeError("TIPC subscription requires a listener");
+					}
+					return subscribe(
+						path,
+						subscriptionArgs,
+						listener,
+						hasOptions ? lastArg : undefined,
+					);
+				};
 			case "get":
 				return () => getValue(path);
 			default:

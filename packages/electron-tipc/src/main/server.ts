@@ -5,6 +5,7 @@ import type {
 	AllTIPCMessage,
 	AllTIPCMessageWithEvent,
 	TIPCMessage,
+	TIPCSubscriptionMessage,
 } from "../type";
 import { filter, fromEvent, map, Subscription } from "rxjs";
 import * as procedure from "./procedure";
@@ -39,6 +40,17 @@ function getFunction<Context>(
 	return null;
 }
 
+function serializeError(error: unknown) {
+	if (error instanceof Error) {
+		return {
+			message: error.message,
+			name: error.name,
+			stack: error.stack,
+		};
+	}
+	return { message: String(error) };
+}
+
 interface Options<Context> {
 	functions: Functions<Context>;
 	createContext?: (options: CreateContextOptions) => Context;
@@ -71,6 +83,15 @@ export const createTIPCServer = <Context = DefaultContext>(
 		}
 	}
 
+	function handleGet(event: Electron.IpcMainInvokeEvent, path: string[]) {
+		const fn = getFunction(functions, path);
+		if (!fn || fn.type !== "get")
+			throw new Error(`Procedure get ${path} not found`);
+		const senderId = event.sender.id;
+		const context = createContext({ senderId, type: fn.type, path, args: [] });
+		return fn.apply(context, []);
+	}
+
 	/** subscribeId -> { subscribe: Subscription, senderId: number } */
 	const subscriptions = new Map<
 		string,
@@ -83,6 +104,16 @@ export const createTIPCServer = <Context = DefaultContext>(
 			subscription.subscribe.unsubscribe();
 			subscriptions.delete(subscribeId);
 		}
+	}
+
+	function sendSubscriptionMessage(
+		senderId: number,
+		message: TIPCSubscriptionMessage,
+	) {
+		const target = webContents.fromId(senderId);
+		if (!target || target.isDestroyed()) return false;
+		target.send(channel.message, message);
+		return true;
 	}
 
 	const messageObservable = fromEvent<AllTIPCMessageWithEvent>(
@@ -113,31 +144,46 @@ export const createTIPCServer = <Context = DefaultContext>(
 		messageObservable
 			.pipe(filter((msg) => msg.payload === "subscribe"))
 			.subscribe((msg) => {
-				const [path, subscribeId] = msg.args;
+				const [path, subscribeId, args] = msg.args;
 				const senderId = msg.event.sender.id;
 				const fn = getFunction(functions, path);
 				if (!fn || fn.type !== "subscribe")
 					throw new Error(`Procedure subscription ${path} not found`);
+				unsubscribe(subscribeId);
 				const context = createContext({
 					senderId,
 					type: fn.type,
 					path,
-					args: [],
+					args,
 				});
-				const observable = fn.apply(context, []);
+				const observable = fn.apply(context, args);
 
-				const subscribe = observable.subscribe((data) => {
-					const target = webContents.fromId(senderId);
-					if (target) {
-						target.send(channel.message, {
+				let subscribe: Subscription | undefined;
+				subscribe = observable.subscribe({
+					next(data) {
+						const sent = sendSubscriptionMessage(senderId, {
 							payload: "subscription",
 							args: [subscribeId, data],
 						} satisfies TIPCMessage<"subscription">);
-					} else {
+						if (!sent) unsubscribe(subscribeId);
+					},
+					error(error) {
+						sendSubscriptionMessage(senderId, {
+							payload: "subscriptionError",
+							args: [subscribeId, serializeError(error)],
+						} satisfies TIPCMessage<"subscriptionError">);
 						unsubscribe(subscribeId);
-					}
+					},
+					complete() {
+						sendSubscriptionMessage(senderId, {
+							payload: "subscriptionComplete",
+							args: [subscribeId],
+						} satisfies TIPCMessage<"subscriptionComplete">);
+						unsubscribe(subscribeId);
+					},
 				});
 				subscriptions.set(subscribeId, { subscribe, senderId });
+				if (subscribe.closed) subscriptions.delete(subscribeId);
 			}),
 	);
 
@@ -145,25 +191,12 @@ export const createTIPCServer = <Context = DefaultContext>(
 		switch (message.payload) {
 			case "invoke":
 				return handleInvoke(event, ...message.args);
+			case "get":
+				return handleGet(event, ...message.args);
 			default:
 				throw new Error(`Unknown payload ${message}`);
 		}
 	});
-
-	function handleGet(
-		event: Electron.IpcMainEvent,
-		message: TIPCMessage<"get">,
-	) {
-		const [path] = message.args;
-		const fn = getFunction(functions, path);
-		if (!fn || fn.type !== "get")
-			throw new Error(`Procedure get ${path} not found`);
-		const senderId = event.sender.id;
-		const context = createContext({ senderId, type: fn.type, path, args: [] });
-		event.returnValue = fn.apply(context, []);
-	}
-
-	ipcMain.on(channel.get, handleGet);
 
 	function handleRendererClosed(
 		_event: Electron.Event,
@@ -182,7 +215,6 @@ export const createTIPCServer = <Context = DefaultContext>(
 
 	return () => {
 		ipcMain.removeHandler(channel.invoke);
-		ipcMain.removeListener(channel.get, handleGet);
 		messageSubscription.unsubscribe();
 		app.off("render-process-gone", handleRendererClosed);
 	};

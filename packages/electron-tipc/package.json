@@ -2,24 +2,24 @@
 	"name": "tipc-electron",
 	"version": "0.0.5",
 	"description": "A typesafe IPC library for Electron",
-	"main": "dist/index.js",
+	"main": "dist/index.cjs",
 	"module": "dist/index.mjs",
-	"types": "dist/index.d.ts",
+	"types": "dist/index.d.mts",
 	"exports": {
 		".": {
+			"types": "./dist/index.d.mts",
 			"import": "./dist/index.mjs",
-			"require": "./dist/index.js",
-			"types": "./dist/index.d.ts"
+			"require": "./dist/index.cjs"
 		},
 		"./main": {
+			"types": "./dist/main/index.d.mts",
 			"import": "./dist/main/index.mjs",
-			"require": "./dist/main/index.js",
-			"types": "./dist/main/index.d.ts"
+			"require": "./dist/main/index.cjs"
 		},
 		"./renderer": {
+			"types": "./dist/renderer.d.mts",
 			"import": "./dist/renderer.mjs",
-			"require": "./dist/renderer.js",
-			"types": "./dist/renderer.d.ts"
+			"require": "./dist/renderer.cjs"
 		}
 	},
 	"scripts": {

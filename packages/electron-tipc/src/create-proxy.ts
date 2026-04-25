@@ -37,7 +37,7 @@ function createInnerProxy(
 			// special handling for e.g. `trpc.hello.call(this, 'there')` and `trpc.hello.apply(this, ['there'])
 			if (lastOfPath === "call") {
 				opts = {
-					args: args.length >= 2 ? [args[1]] : [],
+					args: args.length >= 2 ? args.slice(1) : [],
 					path: path.slice(0, -1),
 				};
 			} else if (lastOfPath === "apply") {

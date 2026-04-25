@@ -143,11 +143,11 @@ async function main() {
 		document.getElementById("counter")!.textContent = count.toString();
 	});
 
-	// 4. Value retrieval: get current state synchronously
-	const currentCount = tipc.state.getCounter.get();
+	// 4. Value retrieval: get current state
+	const currentCount = await tipc.state.getCounter.get();
 	console.log(`Current count: ${currentCount}`);
 
-	const timestamp = tipc.state.getTimestamp.get();
+	const timestamp = await tipc.state.getTimestamp.get();
 	console.log(`Current timestamp: ${timestamp}`);
 
 	// Manipulate counter
@@ -325,6 +325,10 @@ import { interval } from "rxjs";
 const timer = procedure.subscription(() => {
 	return interval(1000); // Emit every second
 });
+
+const watchUser = procedure.subscription((userId: string) => {
+	return userEvents$(userId);
+});
 ```
 
 Subscribe in renderer process:
@@ -334,13 +338,29 @@ const unsubscribe = tipc.timer.subscribe((tick) => {
 	console.log(`Timer: ${tick}`);
 });
 
+const unsubscribeUser = tipc.watchUser.subscribe(
+	"user-1",
+	(event) => {
+		console.log(event);
+	},
+	{
+		onError(error) {
+			console.error("Subscription failed", error);
+		},
+		onComplete() {
+			console.log("Subscription completed");
+		},
+	},
+);
+
 // Unsubscribe
 unsubscribe();
+unsubscribeUser();
 ```
 
 #### `procedure.value(fn)`
 
-Creates a value retrieval procedure that returns data synchronously.
+Creates a value retrieval procedure for lightweight value reads.
 
 ```typescript
 const getCurrentUser = procedure.value(() => {
@@ -351,7 +371,7 @@ const getCurrentUser = procedure.value(() => {
 Get value in renderer process:
 
 ```typescript
-const user = tipc.getCurrentUser.get(); // Synchronous call
+const user = await tipc.getCurrentUser.get();
 ```
 
 **Note**: The function must return a non-Promise value. For async operations, use `procedure.handle` instead.
@@ -439,7 +459,7 @@ const unsubscribe = tipc.data.realtime.subscribe((data) => {
 	console.log(data);
 });
 
-const currentData = tipc.data.current.get();
+const currentData = await tipc.data.current.get();
 ```
 
 ## Type System
@@ -461,10 +481,16 @@ type UserFunctions = {
 			emit: () => void;
 		};
 		subscribe: {
-			subscribe: (listener: (data: any) => void) => () => void;
+			subscribe: (
+				listener: (data: any) => void,
+				options?: {
+					onError?: (error: Error) => void;
+					onComplete?: () => void;
+				},
+			) => () => void;
 		};
 		state: {
-			get: () => { isLoggedIn: boolean; lastLogin: Date };
+			get: () => Promise<{ isLoggedIn: boolean; lastLogin: Date }>;
 		};
 	};
 };

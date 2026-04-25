@@ -32,9 +32,9 @@ export function create<Context>() {
 		return _listener;
 	}
 
-	function subscription<V>(listener: AnyFunction<Observable<V>>) {
-		function _listener(this: Context) {
-			return listener.apply(this);
+	function subscription<T extends AnyFunction<Observable<any>>>(listener: T) {
+		function _listener(this: Context, ...args: Parameters<T>): ReturnType<T> {
+			return listener.apply(this, args);
 		}
 		_listener.type = "subscribe" as const;
 		return _listener;

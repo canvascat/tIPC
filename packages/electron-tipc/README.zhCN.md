@@ -143,11 +143,11 @@ async function main() {
 		document.getElementById("counter")!.textContent = count.toString();
 	});
 
-	// 4. 值获取：同步获取当前状态
-	const currentCount = tipc.state.getCounter.get();
+	// 4. 值获取：获取当前状态
+	const currentCount = await tipc.state.getCounter.get();
 	console.log(`Current count: ${currentCount}`);
 
-	const timestamp = tipc.state.getTimestamp.get();
+	const timestamp = await tipc.state.getTimestamp.get();
 	console.log(`Current timestamp: ${timestamp}`);
 
 	// 操作计数器
@@ -325,6 +325,10 @@ import { interval } from "rxjs";
 const timer = procedure.subscription(() => {
 	return interval(1000); // 每秒发送一次
 });
+
+const watchUser = procedure.subscription((userId: string) => {
+	return userEvents$(userId);
+});
 ```
 
 在渲染进程中订阅：
@@ -334,13 +338,29 @@ const unsubscribe = tipc.timer.subscribe((tick) => {
 	console.log(`Timer: ${tick}`);
 });
 
+const unsubscribeUser = tipc.watchUser.subscribe(
+	"user-1",
+	(event) => {
+		console.log(event);
+	},
+	{
+		onError(error) {
+			console.error("订阅失败", error);
+		},
+		onComplete() {
+			console.log("订阅已完成");
+		},
+	},
+);
+
 // 取消订阅
 unsubscribe();
+unsubscribeUser();
 ```
 
 #### `procedure.value(fn)`
 
-创建一个同步返回数据的值获取程序。
+创建一个用于轻量值读取的值获取程序。
 
 ```typescript
 const getCurrentUser = procedure.value(() => {
@@ -351,7 +371,7 @@ const getCurrentUser = procedure.value(() => {
 在渲染进程中获取值：
 
 ```typescript
-const user = tipc.getCurrentUser.get(); // 同步调用
+const user = await tipc.getCurrentUser.get();
 ```
 
 **注意**：函数必须返回非 Promise 值。对于异步操作，请使用 `procedure.handle`。
@@ -439,7 +459,7 @@ const unsubscribe = tipc.data.realtime.subscribe((data) => {
 	console.log(data);
 });
 
-const currentData = tipc.data.current.get();
+const currentData = await tipc.data.current.get();
 ```
 
 ## 类型系统
@@ -453,16 +473,24 @@ const currentData = tipc.data.current.get();
 type UserFunctions = {
 	user: {
 		getInfo: {
-			invoke: (userId: string) => Promise<{ id: string; name: string; email: string }>;
+			invoke: (
+				userId: string,
+			) => Promise<{ id: string; name: string; email: string }>;
 		};
 		logout: {
 			emit: () => void;
 		};
 		subscribe: {
-			subscribe: (data: any) => void) => () => void;
+			subscribe: (
+				listener: (data: any) => void,
+				options?: {
+					onError?: (error: Error) => void;
+					onComplete?: () => void;
+				},
+			) => () => void;
 		};
 		state: {
-			get: () => { isLoggedIn: boolean; lastLogin: Date };
+			get: () => Promise<{ isLoggedIn: boolean; lastLogin: Date }>;
 		};
 	};
 };
