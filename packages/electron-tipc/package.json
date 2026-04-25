@@ -23,8 +23,8 @@
 		}
 	},
 	"scripts": {
-		"build": "tsdown",
-		"dev": "tsdown --watch",
+		"build": "vp pack",
+		"dev": "vp pack --watch",
 		"prepublishOnly": "pnpm build"
 	},
 	"keywords": [
@@ -48,8 +48,8 @@
 	"devDependencies": {
 		"electron": "^37.2.0",
 		"rxjs": "^7.8.2",
-		"tsdown": "^0.12.8",
-		"typescript": "^5.0.0"
+		"typescript": "^5.0.0",
+		"vite-plus": "catalog:"
 	},
 	"files": [
 		"dist",

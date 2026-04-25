@@ -24,44 +24,40 @@
 	},
 	"type": "module",
 	"scripts": {
-		"dev": "vite",
-		"build": "tsc && vite build && electron-builder",
-		"preview": "vite preview",
-		"lint": "oxlint",
-		"lint:fix": "oxlint --fix",
-		"lint:check": "oxlint --quiet",
-		"format": "prettier --write ."
+		"dev": "vp dev",
+		"build": "tsc && vp build && electron-builder",
+		"preview": "vp preview",
+		"lint": "vp lint",
+		"lint:fix": "vp lint --fix",
+		"lint:check": "vp lint --quiet",
+		"format": "vp fmt ."
 	},
 	"dependencies": {
 		"@tailwindcss/vite": "^4.1.7",
 		"class-variance-authority": "^0.7.1",
 		"clsx": "^2.1.1",
+		"lucide-react": "^0.534.0",
 		"react": "^19.1.0",
 		"react-dom": "^19.1.0",
 		"rxjs": "^7.8.2",
-		"tailwind-merge": "^3.3.0",
+		"tailwind-merge": "^3.3.1",
 		"tailwindcss": "^4.1.7"
 	},
 	"devDependencies": {
-		"@prettier/plugin-oxc": "^0.0.4",
 		"@types/node": "^22.15.21",
 		"@types/react": "^19.1.2",
 		"@types/react-dom": "^19.1.2",
 		"@vitejs/plugin-react-oxc": "^0.2.2",
 		"electron": "^37.2.0",
 		"electron-builder": "^26.0.12",
-		"oxlint": "^1.6.0",
-		"prettier": "^3.6.2",
 		"tipc-electron": "workspace:*",
-		"tw-animate-css": "^1.3.0",
+		"tw-animate-css": "^1.3.5",
 		"typescript": "~5.8.3",
-		"vite": "^6.3.5",
-		"vite-plugin-electron": "^0.29.0"
+		"vite": "catalog:",
+		"vite-plugin-electron": "^0.29.0",
+		"vite-plus": "catalog:"
 	},
 	"pnpm": {
-		"overrides": {
-			"vite": "npm:rolldown-vite@latest"
-		},
 		"onlyBuiltDependencies": [
 			"@tailwindcss/oxide",
 			"electron",

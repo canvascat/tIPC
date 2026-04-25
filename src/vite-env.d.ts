@@ -1,4 +1,4 @@
-/// <reference types="vite/client" />
+/// <reference types="vite-plus/client" />
 
 interface Window {
 	// expose in the `electron/preload/index.ts`

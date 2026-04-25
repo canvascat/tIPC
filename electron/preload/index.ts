@@ -2,7 +2,7 @@ import { ipcRenderer, contextBridge } from "electron";
 
 export type ExposeIpcRenderer = Pick<
 	Electron.IpcRenderer,
-	"invoke" | "send" | "addListener" | "removeListener"
+	"invoke" | "send" | "addListener" | "removeListener" | "sendSync"
 >;
 
 const exposeIpcRenderer: ExposeIpcRenderer = {
@@ -12,6 +12,7 @@ const exposeIpcRenderer: ExposeIpcRenderer = {
 		ipcRenderer.addListener(channel, listener),
 	removeListener: (channel, listener) =>
 		ipcRenderer.removeListener(channel, listener),
+	sendSync: (channel, ...args) => ipcRenderer.sendSync(channel, ...args),
 };
 
 contextBridge.exposeInMainWorld("ipcRenderer", exposeIpcRenderer);

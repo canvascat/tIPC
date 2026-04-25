@@ -12,6 +12,8 @@ function App() {
 		});
 	}, []);
 
+	console.debug(tipc.theme.themeSource.get());
+
 	return (
 		<div className="App">
 			<div className="logo-box">
@@ -23,12 +25,16 @@ function App() {
 			</div>
 			<h1>Electron + Vite + React</h1>
 			<div className="card">
-				<button onClick={() => setCount((count) => count + 1)}>count is {count}</button>
+				<button onClick={() => setCount((count) => count + 1)}>
+					count is {count}
+				</button>
 				<p>
 					Edit <code>src/App.tsx</code> and save to test HMR
 				</p>
 			</div>
-			<p className="read-the-docs">Click on the Electron + Vite logo to learn more</p>
+			<p className="read-the-docs">
+				Click on the Electron + Vite logo to learn more
+			</p>
 		</div>
 	);
 }

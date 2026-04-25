@@ -1,7 +1,0 @@
-dist-electron
-dist
-node_modules
-.vscode
-.git
-.gitignore 
-.pnpm-lock.yaml

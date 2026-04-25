@@ -1,0 +1,19 @@
+import { defineConfig } from "vite-plus";
+import pkg from "./package.json" with { type: "json" };
+
+export default defineConfig({
+	pack: {
+		target: ["node16"],
+		entry: ["src/index.ts", "src/main/index.ts", "src/renderer.ts"],
+		dts: {
+			sourcemap: true,
+			tsconfig: "./tsconfig.build.json",
+		},
+		format: ["cjs", "esm"],
+		outExtensions: (ctx) => ({
+			dts: ctx.format === "cjs" ? ".d.cts" : ".d.mts",
+			js: ctx.format === "cjs" ? ".cjs" : ".mjs",
+		}),
+		external: Object.keys(pkg.peerDependencies || {}),
+	},
+});
