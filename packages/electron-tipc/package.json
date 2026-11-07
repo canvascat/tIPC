@@ -2,24 +2,40 @@
 	"name": "tipc-electron",
 	"version": "0.0.5",
 	"description": "A typesafe IPC library for Electron",
-	"main": "dist/index.js",
+	"type": "module",
+	"main": "dist/index.cjs",
 	"module": "dist/index.mjs",
-	"types": "dist/index.d.ts",
+	"types": "dist/index.d.mts",
 	"exports": {
 		".": {
-			"import": "./dist/index.mjs",
-			"require": "./dist/index.js",
-			"types": "./dist/index.d.ts"
+			"import": {
+				"types": "./dist/index.d.mts",
+				"default": "./dist/index.mjs"
+			},
+			"require": {
+				"types": "./dist/index.d.cts",
+				"default": "./dist/index.cjs"
+			}
 		},
 		"./main": {
-			"import": "./dist/main/index.mjs",
-			"require": "./dist/main/index.js",
-			"types": "./dist/main/index.d.ts"
+			"import": {
+				"types": "./dist/main/index.d.mts",
+				"default": "./dist/main/index.mjs"
+			},
+			"require": {
+				"types": "./dist/main/index.d.cts",
+				"default": "./dist/main/index.cjs"
+			}
 		},
 		"./renderer": {
-			"import": "./dist/renderer.mjs",
-			"require": "./dist/renderer.js",
-			"types": "./dist/renderer.d.ts"
+			"import": {
+				"types": "./dist/renderer.d.mts",
+				"default": "./dist/renderer.mjs"
+			},
+			"require": {
+				"types": "./dist/renderer.d.cts",
+				"default": "./dist/renderer.cjs"
+			}
 		}
 	},
 	"scripts": {
@@ -46,17 +62,17 @@
 	"bugs": "https://github.com/canvascat/tIPC/issues",
 	"license": "MIT",
 	"devDependencies": {
-		"electron": "^37.2.0",
+		"electron": "^45.2.3",
 		"rxjs": "^7.8.2",
-		"tsdown": "^0.12.8",
-		"typescript": "^5.0.0"
+		"tsdown": "^0.23.7",
+		"typescript": "^5.9.3"
 	},
 	"files": [
 		"dist",
 		"src"
 	],
 	"peerDependencies": {
-		"electron": "^37.2.0",
+		"electron": ">=37.2.0",
 		"rxjs": "^7.8.2"
 	},
 	"publishConfig": {
