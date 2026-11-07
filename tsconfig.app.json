@@ -7,7 +7,6 @@
 		"moduleDetection": "force",
 		"useDefineForClassFields": true,
 		/* Paths */
-		"baseUrl": ".",
 		"module": "ESNext",
 		/* Bundler mode */
 		"moduleResolution": "bundler",

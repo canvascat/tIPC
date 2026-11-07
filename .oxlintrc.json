@@ -1,8 +1,7 @@
 {
 	"$schema": "./node_modules/oxlint/configuration_schema.json",
-	"plugins": ["react", "unicorn", "import", "promise", "node"],
+	"plugins": ["react", "unicorn", "typescript", "import", "promise", "node"],
 	"rules": {
-		"react/jsx-uses-react": "off",
 		"react/react-in-jsx-scope": "off",
 		"react-hooks/rules-of-hooks": "error",
 		"react-hooks/exhaustive-deps": "warn",
@@ -27,51 +26,30 @@
 		"unicorn/no-array-for-each": "warn",
 		"unicorn/no-null": "off",
 		"import/no-duplicates": "error",
-		"import/order": [
-			"error",
-			{
-				"groups": [
-					"builtin",
-					"external",
-					"internal",
-					"parent",
-					"sibling",
-					"index"
-				],
-				"alphabetize": {
-					"order": "asc"
-				}
-			}
-		],
 		"promise/always-return": "off",
 		"promise/no-return-wrap": "error",
 		"promise/param-names": "off",
 		"promise/catch-or-return": "off",
 		"promise/no-nesting": "warn",
 		"promise/no-promise-in-callback": "warn",
-		"promise/no-callback-in-promise": "warn",
-		"node/no-missing-import": "off",
-		"node/no-unsupported-features/es-syntax": "off",
-		"node/prefer-global/process": "error"
+		"promise/no-callback-in-promise": "warn"
 	},
 	"env": {
 		"browser": true,
 		"node": true,
 		"es2022": true
 	},
-	"parserOptions": {
-		"ecmaVersion": 2022,
-		"sourceType": "module",
-		"ecmaFeatures": {
-			"jsx": true
-		}
-	},
 	"settings": {
 		"react": {
-			"version": "detect"
+			"version": "19"
 		}
 	},
-	"ignores": ["dist/**", "dist-electron/**", "node_modules/**", "coverage/**"],
+	"ignorePatterns": [
+		"dist/**",
+		"dist-electron/**",
+		"node_modules/**",
+		"coverage/**"
+	],
 	"overrides": [
 		{
 			"files": ["**/electron/**/*.ts", "**/electron/**/*.js"],
@@ -80,8 +58,7 @@
 				"browser": false
 			},
 			"rules": {
-				"no-console": "off",
-				"node/prefer-global/process": "off"
+				"no-console": "off"
 			}
 		},
 		{
@@ -89,9 +66,6 @@
 			"env": {
 				"browser": true,
 				"node": false
-			},
-			"rules": {
-				"node/prefer-global/process": "off"
 			}
 		},
 		{

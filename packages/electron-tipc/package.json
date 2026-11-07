@@ -12,14 +12,24 @@
 			"types": "./dist/index.d.ts"
 		},
 		"./main": {
-			"import": "./dist/main/index.mjs",
-			"require": "./dist/main/index.js",
-			"types": "./dist/main/index.d.ts"
+			"import": {
+				"types": "./dist/main/index.d.mts",
+				"default": "./dist/main/index.mjs"
+			},
+			"require": {
+				"types": "./dist/main/index.d.cts",
+				"default": "./dist/main/index.cjs"
+			}
 		},
 		"./renderer": {
-			"import": "./dist/renderer.mjs",
-			"require": "./dist/renderer.js",
-			"types": "./dist/renderer.d.ts"
+			"import": {
+				"types": "./dist/renderer.d.mts",
+				"default": "./dist/renderer.mjs"
+			},
+			"require": {
+				"types": "./dist/renderer.d.cts",
+				"default": "./dist/renderer.cjs"
+			}
 		}
 	},
 	"scripts": {
@@ -45,18 +55,19 @@
 	"homepage": "https://github.com/canvascat/tIPC/tree/main/packages/electron-tipc",
 	"bugs": "https://github.com/canvascat/tIPC/issues",
 	"license": "MIT",
+	"type": "module",
 	"devDependencies": {
-		"electron": "^37.2.0",
+		"electron": "^45.2.3",
 		"rxjs": "^7.8.2",
-		"tsdown": "^0.12.8",
-		"typescript": "^5.0.0"
+		"tsdown": "^0.23.7",
+		"typescript": "~7.0.2"
 	},
 	"files": [
 		"dist",
 		"src"
 	],
 	"peerDependencies": {
-		"electron": "^37.2.0",
+		"electron": ">=37.2.0 <46",
 		"rxjs": "^7.8.2"
 	},
 	"publishConfig": {
