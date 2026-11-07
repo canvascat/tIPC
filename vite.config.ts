@@ -1,11 +1,14 @@
 import { rmSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
+import { fileURLToPath } from "node:url";
 import tailwindcss from "@tailwindcss/vite";
-import react from "@vitejs/plugin-react-oxc";
+import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 import electron from "vite-plugin-electron";
-import pkg from "./package.json" assert { type: "json" };
+import pkg from "./package.json" with { type: "json" };
+
+const rootDir = path.dirname(fileURLToPath(import.meta.url));
 
 // https://vitejs.dev/config/
 export default defineConfig(({ command }) => {
@@ -17,7 +20,7 @@ export default defineConfig(({ command }) => {
 	return {
 		resolve: {
 			alias: {
-				"@": path.join(__dirname, "src"),
+				"@": path.join(rootDir, "src"),
 			},
 		},
 		plugins: [
@@ -28,7 +31,9 @@ export default defineConfig(({ command }) => {
 					entry: "electron/main/index.ts",
 					onstart(args) {
 						if (process.env.VSCODE_DEBUG) {
-							console.debug(/* For `.vscode/.debug.script.mjs` */ "[startup] Electron App");
+							console.debug(
+								/* For `.vscode/.debug.script.mjs` */ "[startup] Electron App",
+							);
 						} else {
 							args.startup();
 						}
@@ -39,7 +44,9 @@ export default defineConfig(({ command }) => {
 							minify: isBuild,
 							outDir: "dist-electron/main",
 							rollupOptions: {
-								external: Object.keys("dependencies" in pkg ? pkg.dependencies : {}),
+								external: Object.keys(
+									"dependencies" in pkg ? pkg.dependencies : {},
+								),
 								platform: "node",
 							},
 						},
@@ -58,11 +65,13 @@ export default defineConfig(({ command }) => {
 							minify: isBuild,
 							outDir: "dist-electron/preload",
 							rollupOptions: {
-								external: Object.keys("dependencies" in pkg ? pkg.dependencies : {}),
+								external: Object.keys(
+									"dependencies" in pkg ? pkg.dependencies : {},
+								),
 								input: "electron/preload/index.ts",
 								output: {
 									format: "cjs",
-									inlineDynamicImports: true,
+									codeSplitting: false,
 									entryFileNames: `[name].mjs`,
 									chunkFileNames: `[name].mjs`,
 									assetFileNames: "[name].[ext]",
