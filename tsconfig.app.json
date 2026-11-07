@@ -7,7 +7,6 @@
 		"moduleDetection": "force",
 		"useDefineForClassFields": true,
 		/* Paths */
-		"baseUrl": ".",
 		"module": "ESNext",
 		/* Bundler mode */
 		"moduleResolution": "bundler",
@@ -17,6 +16,7 @@
 		},
 		"allowImportingTsExtensions": true,
 		/* Linting */
+		"types": ["node"],
 		"strict": true,
 		/* "erasableSyntaxOnly": true, */
 		"noFallthroughCasesInSwitch": true,
