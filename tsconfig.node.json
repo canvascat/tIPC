@@ -12,6 +12,8 @@
 		"allowImportingTsExtensions": true,
 
 		/* Linting */
+		"types": ["node"],
+		"resolveJsonModule": true,
 		"strict": true,
 		/* "erasableSyntaxOnly": true, */
 		"noFallthroughCasesInSwitch": true,
